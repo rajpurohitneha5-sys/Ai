@@ -1,38 +1,27 @@
 name: Build APK
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: stable
-      - name: Build APK
-        run: |
-          cp main.dart /tmp/main.dart
-          cp pubspec.yaml /tmp/pubspec.yaml
-          cp logo.png /tmp/logo.png
-          flutter create --org com.example --project-name ai .
-          cp /tmp/main.dart lib/main.dart
-          cp /tmp/pubspec.yaml pubspec.yaml
-          mkdir -p assets
-          cp /tmp/logo.png assets/logo.png
-          flutter pub get
-          flutter build apk --release
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - run: flutter create --org com.example --project-name ai tempapp
+      - run: cp main.dart tempapp/lib/main.dart
+      - run: cp pubspec.yaml tempapp/pubspec.yaml
+      - run: cp logo.png tempapp/logo.png
+      - run: mkdir -p tempapp/assets
+      - run: cp logo.png tempapp/assets/logo.png
+      - run: cd tempapp && flutter pub get && dart run flutter_launcher_icons
+      - run: cd tempapp && flutter build apk --release
+      - uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: tempapp/build/app/outputs/flutter-apk/app-release.apk
