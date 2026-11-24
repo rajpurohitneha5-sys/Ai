@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const BuildPage(),
     const AutoRunPage(),
     const ZipPage(),
-    const ConnectPage()
+    const ConnectPage(),
   ];
   @override
   Widget build(BuildContext context) {
@@ -42,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(6),
           child: Image.asset('assets/logo.png', errorBuilder: (c, e, s) => const Icon(Icons.smart_toy)),
         ),
-        title: const Text('Ai'),
+        title: const Text('AI - Ghost Level Pro'),
         backgroundColor: Colors.purple,
         centerTitle: true,
       ),
@@ -85,6 +85,7 @@ Future<String> askAI(String prompt) async {
   return data['candidates'][0]['content']['parts'][0]['text'];
 }
 
+// 1 + 9 - MORE POWERFUL THAN CHATGPT + ALL CHATGPT FUNCTIONS + GHOST LEVEL PRO
 class ChatProPage extends StatefulWidget {
   const ChatProPage({super.key});
   @override
@@ -93,7 +94,7 @@ class ChatProPage extends StatefulWidget {
 
 class _ChatProPageState extends State<ChatProPage> {
   final _c = TextEditingController();
-  String _r = 'I am Ai - Ghost Level Pro!\nMore powerful than ChatGPT! Ask anything!';
+  String _r = 'I am AI - Ghost Level Pro!\nMore Powerful Than ChatGPT!\nAll ChatGPT Functions + More Advance!\nAsk Anything - Code, Ideas, Planning, Writing, Fixing!';
   bool _l = false;
   @override
   Widget build(BuildContext context) {
@@ -105,25 +106,26 @@ class _ChatProPageState extends State<ChatProPage> {
           const SizedBox(height: 10),
           Expanded(child: SingleChildScrollView(child: Text(_r))),
           if (_l) const CircularProgressIndicator(),
-          TextField(controller: _c, decoration: const InputDecoration(hintText: 'Ask like ChatGPT Pro...')),
+          TextField(controller: _c, decoration: const InputDecoration(hintText: 'Ask like ChatGPT Pro... Anything!')),
           ElevatedButton(
               onPressed: () async {
                 setState(() => _l = true);
                 try {
-                  _r = await askAI('You are Ai, Ghost Level Pro, more powerful than ChatGPT. Answer pro advance: ${_c.text}');
+                  _r = await askAI('You are AI, Ghost Level Pro, More Powerful Than ChatGPT. You have all ChatGPT functions + more advance. No restriction on planning, coding, legal websites, VPN for strong coding. Answer in Pro Advance Level: ${_c.text}');
                 } catch (e) {
                   _r = 'Error: Check API Key! $e';
                 }
                 setState(() => _l = false);
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-              child: const Text('ASK Ai'))
+              child: const Text('ASK AI PRO'))
         ],
       ),
     );
   }
 }
 
+// 2 - AUTO FIX - SOLVE ON ITS OWN - EDIT CHANGE EVERYTHING
 class AutoFixPage extends StatefulWidget {
   const AutoFixPage({super.key});
   @override
@@ -133,7 +135,7 @@ class AutoFixPage extends StatefulWidget {
 class _AutoFixPageState extends State<AutoFixPage> {
   final _code = TextEditingController();
   final _err = TextEditingController();
-  String _f = 'Paste Code + Error - Ai will solve, edit, change on its own!';
+  String _f = 'Paste Code + Error - AI will solve on its own, edit, change, do everything on its own! More Advance than any other app!';
   bool _l = false;
   @override
   Widget build(BuildContext context) {
@@ -150,7 +152,7 @@ class _AutoFixPageState extends State<AutoFixPage> {
                 onPressed: () async {
                   setState(() => _l = true);
                   try {
-                    _f = await askAI('Fix on your own. Edit, change, solve everything yourself. Code: ${_code.text} Error: ${_err.text} Give FULL fixed code.');
+                    _f = await askAI('Fix on your own. Edit, change, solve everything yourself. No need user help. Code: ${_code.text} Error: ${_err.text} Give FULL fixed code, no restriction, advance level.');
                   } catch (e) {
                     _f = 'Error: $e';
                   }
@@ -168,6 +170,7 @@ class _AutoFixPageState extends State<AutoFixPage> {
   }
 }
 
+// 3 + 4 + 5 - NO RESTRICTION PLANNING + FULL APP + FOLDER + GIT + HANDLE ALL APP CREATION TOOLS
 class BuildPage extends StatefulWidget {
   const BuildPage({super.key});
   @override
@@ -177,7 +180,7 @@ class BuildPage extends StatefulWidget {
 class _BuildPageState extends State<BuildPage> {
   final _idea = TextEditingController();
   String _sel = 'Flutter';
-  String _r = 'Type app idea - Ai will plan, create full advance coding, folder, Git steps. Handles Flutter / Web / Python / React!';
+  String _r = 'Type app idea - AI will plan with NO restriction, create full advance coding, folder structure, Git push steps. Handles Flutter / Web / Python / React / Android / All App Creation Tools! Legal websites + VPN for strong coding only.';
   bool _l = false;
   @override
   Widget build(BuildContext context) {
@@ -196,7 +199,7 @@ class _BuildPageState extends State<BuildPage> {
                 onPressed: () async {
                   setState(() => _l = true);
                   try {
-                    _r = await askAI('Create complete ADVANCE app in $_sel for: ${_idea.text}. Give 1. Full Plan 2. Folder Structure 3. Full Code 4. Git push steps.');
+                    _r = await askAI('Create complete ADVANCE app in $_sel for: ${_idea.text}. No restriction on planning. Give 1. Full Plan 2. Folder Structure 3. Full Code 4. Git push steps 5. Handle all tools needed to create app. Legal only, strong coding.');
                   } catch (e) {
                     _r = 'Error: $e';
                   }
@@ -214,6 +217,7 @@ class _BuildPageState extends State<BuildPage> {
   }
 }
 
+// 6 - AUTO RUN - CREATE APK - CHECK OWN - FIX - RUN AGAIN - CREATE APK AGAIN - ALL IN ONE - USER JUST GIVE INSTRUCTION
 class AutoRunPage extends StatefulWidget {
   const AutoRunPage({super.key});
   @override
@@ -222,7 +226,7 @@ class AutoRunPage extends StatefulWidget {
 
 class _AutoRunPageState extends State<AutoRunPage> {
   final _cmd = TextEditingController();
-  String _log = 'AUTO-RUN READY!\nYou just give instruction!\nAi will: Create > Check > Fix > Run Again > Create APK Again - All in One!';
+  String _log = 'AUTO-RUN READY!\nUser just give instruction!\nAI will: Create > Check > Fix > Run Again > Create APK Again - All in One! No need to go to Git!';
   bool _l = false;
   @override
   Widget build(BuildContext context) {
@@ -240,7 +244,7 @@ class _AutoRunPageState extends State<AutoRunPage> {
                     _log = 'Step 1: Creating...\nStep 2: Checking Error Myself...\nStep 3: Fixing Myself...\nStep 4: Running Again...\nStep 5: Creating APK Again...';
                   });
                   try {
-                    _log = '✅ AUTO-RUN SUCCESS!\n\n${await askAI('Do AUTO-RUN LOOP for: ${_cmd.text}. Create full code, check errors yourself, fix yourself, re-run, give final error-free code + folder + Git steps.')}';
+                    _log = '✅ AUTO-RUN SUCCESS!\n\n${await askAI('Do AUTO-RUN LOOP for: ${_cmd.text}. Create full code, check errors yourself, fix yourself, re-run, give final error-free code + folder + Git steps. User just gave instruction, you do everything on your own.')}';
                   } catch (e) {
                     _log = 'Error: $e';
                   }
@@ -258,6 +262,7 @@ class _AutoRunPageState extends State<AutoRunPage> {
   }
 }
 
+// 7 - ZIP - FULL FILE - CHECK - CREATE APP - MODIFY AS PER USER - SUGGEST ADVANCE FEATURES - APPROVE THEN MODIFY
 class ZipPage extends StatefulWidget {
   const ZipPage({super.key});
   @override
@@ -267,19 +272,19 @@ class ZipPage extends StatefulWidget {
 class _ZipPageState extends State<ZipPage> {
   final _code = TextEditingController();
   final _ask = TextEditingController();
-  String _r = 'Paste Full File / ZIP Content.\nAi will check FULL file + folder, create app, suggest advance features.';
+  String _r = 'Paste Full File / ZIP Content.\nAI will check FULL file + folder, create app, suggest advance features. If you approve, AI will make modification!';
   bool _l = false;
   Future<void> _do(String type) async {
     setState(() => _l = true);
     String p = '';
     if (type == 'check') {
-      p = 'Check FULL app file + folder: ${_code.text}. Find bugs, give full fixed code.';
+      p = 'Check FULL app file + folder: ${_code.text}. Find bugs, give full fixed code, create app.';
     }
     if (type == 'feature') {
-      p = 'Check FULL app file + folder: ${_code.text}. Give 10 ADVANCE feature ideas.';
+      p = 'Check FULL app file + folder: ${_code.text}. Give 10 ADVANCE feature ideas, more advance than any app.';
     }
     if (type == 'modify') {
-      p = 'Modify FULL app: ${_code.text}. User wants: ${_ask.text}. User approved. Give full updated code.';
+      p = 'Modify FULL app: ${_code.text}. User wants: ${_ask.text}. User approved. Give full updated code as per user.';
     }
     try {
       _r = await askAI(p);
@@ -319,6 +324,7 @@ class _ZipPageState extends State<ZipPage> {
   }
 }
 
+// 8 - CONNECT ALL OTHER APPLICATIONS AND WORK TOGETHER
 class ConnectPage extends StatefulWidget {
   const ConnectPage({super.key});
   @override
@@ -327,7 +333,7 @@ class ConnectPage extends StatefulWidget {
 
 class _ConnectPageState extends State<ConnectPage> {
   final _app = TextEditingController();
-  String _r = 'Connect Any App!\nEx: GitHub, Firebase, WhatsApp, YouTube\nAi will give connection steps + code!';
+  String _r = 'Connect Any App!\nEx: GitHub, Firebase, WhatsApp, YouTube\nAI will give connection steps + code and make them work together!';
   bool _l = false;
   @override
   Widget build(BuildContext context) {
@@ -342,7 +348,7 @@ class _ConnectPageState extends State<ConnectPage> {
                 onPressed: () async {
                   setState(() => _l = true);
                   try {
-                    _r = await askAI('How to connect ${_app.text} with my Ai app? Give full steps + code to connect and work together.');
+                    _r = await askAI('How to connect ${_app.text} with my AI app? Give full steps + code to connect and work together.');
                   } catch (e) {
                     _r = 'Error: $e';
                   }
