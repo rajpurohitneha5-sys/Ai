@@ -68,21 +68,31 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 Future<String> askAI(String prompt) async {
-  final res = await http.post(
-    Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({
-      'contents': [
-        {
-          'parts': [
-            {'text': prompt}
-          ]
-        }
-      ]
-    }),
-  );
-  final data = jsonDecode(res.body);
-  return data['candidates'][0]['content']['parts'][0]['text'];
+  try {
+    final res = await http.post(
+      Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'contents': [
+          {
+            'parts': [
+              {'text': prompt}
+            ]
+          }
+        ]
+      }),
+    );
+    if (res.statusCode != 200) {
+      return 'API Error ${res.statusCode}: ${res.body} \n\nCheck API Key in main.dart!';
+    }
+    final data = jsonDecode(res.body);
+    if (data['candidates'] == null) {
+      return 'No reply from AI. Try again! Response: ${res.body}';
+    }
+    return data['candidates'][0]['content']['parts'][0]['text'];
+  } catch (e) {
+    return 'Connection Error: $e \nCheck Internet + API Key!';
+  }
 }
 
 // 1 + 9 - MORE POWERFUL THAN CHATGPT + ALL CHATGPT FUNCTIONS + GHOST LEVEL PRO
