@@ -24,6 +24,7 @@ jobs:
           mkdir -p assets
           cp /tmp/logo.png assets/logo.png
           flutter pub get
+          sed -i 's/gradle-.*/gradle-8.10-all.zip/' android/gradle/wrapper/gradle-wrapper.properties
           flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
