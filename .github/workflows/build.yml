@@ -9,7 +9,7 @@ jobs:
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
-      - run: cp lib/main.dart /tmp/main.dart && cp pubspec.yaml /tmp/pubspec.yaml && cp logo.png /tmp/logo.png
+      - run: cp main.dart /tmp/main.dart && cp pubspec.yaml /tmp/pubspec.yaml && cp logo.png /tmp/logo.png
       - run: flutter create . --project-name ai --org com.ai.app --platforms android --overwrite
       - run: cp /tmp/main.dart lib/main.dart && cp /tmp/pubspec.yaml pubspec.yaml && cp /tmp/logo.png logo.png
       - run: flutter pub get
