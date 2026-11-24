@@ -1,19 +1,30 @@
 name: Build APK
-on: [push]
+on: workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.24.5'
           channel: 'stable'
-      - run: cp main.dart /tmp/main.dart && cp pubspec.yaml /tmp/pubspec.yaml && cp logo.png /tmp/logo.png
-      - run: flutter create . --project-name ai --org com.ai.app --platforms android --overwrite
-      - run: cp /tmp/main.dart lib/main.dart && cp /tmp/pubspec.yaml pubspec.yaml && cp /tmp/logo.png logo.png
-      - run: flutter pub get
-      - run: flutter build apk --release
+          java-version: '17'
+      - run: |
+          cp main.dart /tmp/main.dart
+          cp pubspec.yaml /tmp/pubspec.yaml
+          cp logo.png /tmp/logo.png
+          flutter create --org com.example --project-name Ai .
+          cp /tmp/main.dart lib/main.dart
+          cp /tmp/pubspec.yaml pubspec.yaml
+          mkdir -p assets
+          cp /tmp/logo.png assets/logo.png
+          flutter pub get
+          flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
           name: app-release
