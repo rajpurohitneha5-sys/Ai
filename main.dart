@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-const String apiKey = 'AQ.Ab8RN6Iew00mjwjZNsn7isAG5N0NMpRQKbZ5_HS3tSVYE_Pwmw';
+const String apiKey = 'Ab8RN6Iew00mjwjZNsn7isAG5N0NMpRQKbZ5_HS3tSVYE_Pwmw';
 
 void main() => runApp(const MyApp());
 
