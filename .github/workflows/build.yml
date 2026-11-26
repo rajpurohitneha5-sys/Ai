@@ -7,21 +7,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.5'
-          channel: stable
-      - run: flutter create --org com.example --project-name ai tempapp
-      - run: cp main.dart tempapp/lib/main.dart
-      - run: cp pubspec.yaml tempapp/pubspec.yaml
-      - run: cp logo.png tempapp/logo.png
-      - run: mkdir -p tempapp/assets
-      - run: cp logo.png tempapp/assets/logo.png
-      - run: cd tempapp && flutter pub get && dart run flutter_launcher_icons
-      - run: cd tempapp && flutter build apk --release
+          flutter-version: '3.24.0'
+          channel: 'stable'
+      - run: mkdir -p lib
+      - run: if [ -f main.dart ]; then cp main.dart lib/main.dart; fi
+      - run: flutter pub get
+      - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: tempapp/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
