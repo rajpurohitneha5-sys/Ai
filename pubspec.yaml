@@ -1,5 +1,5 @@
 name: ai
-description: AI - Code Fixer, ChatGPT Pro, All-in-One AI, Ghost Level Pro
+description: AI Super App
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -19,9 +19,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - logo.png
 
-flutter_launcher_icons:
+flutter_icons:
   android: true
-  ios: false
+  ios: true
   image_path: "logo.png"
   min_sdk_android: 21
