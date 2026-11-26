@@ -21,6 +21,7 @@ jobs:
       - run: cp /tmp/pubspec.yaml pubspec.yaml
       - run: cp /tmp/logo.png logo.png || echo "no logo"
       - run: flutter pub get
+      - run: flutter pub run flutter_launcher_icons
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
