@@ -13,7 +13,7 @@ class ChatGPTApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterialDesign: true, colorScheme: ColorScheme.fromSeed(seedColor: Colors.green)),
+      theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: Colors.green)),
       home: const ChatScreen(),
     );
   }
