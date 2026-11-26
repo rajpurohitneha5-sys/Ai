@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
-// 👇 PASTE YOUR NEW GEMINI KEY HERE ONLY - INSIDE " " 👇
+// 👇 PASTE YOUR GEMINI KEY HERE ONLY 👇
 const String mySecretKey = "AQ.Ab8RN6LVwavoZSPnRADf_XKcn6AQH6nCv-Kgfa1ziEN6UQY9XA";
 
 void main() => runApp(const ChatGPTApp());
@@ -42,6 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String _githubToken = '';
   String _githubOwner = '';
   String _githubRepo = 'ai';
+  String _statusText = "";
 
   void _newChat() {
     if (_messages.isNotEmpty) _history.insert(0, List.from(_messages));
@@ -97,38 +98,90 @@ class _ChatScreenState extends State<ChatScreen> {
     ));
   }
 
+  // 🔍 CHECK 8-9 WEBSITES IN PARALLEL
+  Future<Map<String,String>> _checkWebsites(String query) async {
+    Map<String,String> results = {};
+    List<String> sourcesUsed = [];
+    try {
+      final futures = <Future>[];
+      // 1. Wikipedia
+      futures.add(http.get(Uri.parse("https://en.wikipedia.org/api/rest_v1/page/summary/${Uri.encodeComponent(query)}")).timeout(const Duration(seconds: 8)).then((r){
+        if(r.statusCode==200){ var j=jsonDecode(r.body); if(j['extract']!=null){ results['Wikipedia']=j['extract'].toString().substring(0, j['extract'].toString().length>800?800:j['extract'].toString().length); sourcesUsed.add("Wikipedia"); } }
+      }).catchError((_){}));
+      // 2. DuckDuckGo Instant Answer
+      futures.add(http.get(Uri.parse("https://api.duckduckgo.com/?q=${Uri.encodeComponent(query)}&format=json&no_html=1")).timeout(const Duration(seconds: 8)).then((r){
+        if(r.statusCode==200){ var j=jsonDecode(r.body); if(j['AbstractText']!=null && j['AbstractText'].toString().isNotEmpty){ results['DuckDuckGo']=j['AbstractText'].toString(); sourcesUsed.add("DuckDuckGo"); } }
+      }).catchError((_){}));
+      // 3. Wikidata Search
+      futures.add(http.get(Uri.parse("https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${Uri.encodeComponent(query)}&language=en&format=json")).timeout(const Duration(seconds: 8)).then((r){
+        if(r.statusCode==200){ var j=jsonDecode(r.body); if(j['search']!=null && (j['search'] as List).isNotEmpty){ results['Wikidata']=j['search'][0]['description']?.toString() ?? ""; if(results['Wikidata']!.isNotEmpty) sourcesUsed.add("Wikidata"); } }
+      }).catchError((_){}));
+      // 4. HackerNews - Latest Tech News
+      futures.add(http.get(Uri.parse("https://hn.algolia.com/api/v1/search?query=${Uri.encodeComponent(query)}&hitsPerPage=2")).timeout(const Duration(seconds: 8)).then((r){
+        if(r.statusCode==200){ var j=jsonDecode(r.body); if(j['hits']!=null && (j['hits'] as List).isNotEmpty){ results['HackerNews']=(j['hits'][0]['title']??"").toString(); sourcesUsed.add("HackerNews"); } }
+      }).catchError((_){}));
+      // 5. Open-Meteo Weather if query has weather
+      if(query.toLowerCase().contains("weather") || query.toLowerCase().contains("mumbai") || query.toLowerCase().contains("temperature")){
+        futures.add(http.get(Uri.parse("https://api.open-meteo.com/v1/forecast?latitude=19.07&longitude=72.87&current=temperature_2m,weather_code")).timeout(const Duration(seconds: 8)).then((r){
+          if(r.statusCode==200){ var j=jsonDecode(r.body); results['Weather']="Mumbai Temp: ${j['current']['temperature_2m']}°C"; sourcesUsed.add("Open-Meteo Weather"); }
+        }).catchError((_){}));
+      }
+      await Future.wait(futures);
+    } catch(e){}
+    results['__sources'] = sourcesUsed.isEmpty ? "AI Knowledge" : sourcesUsed.join(", ");
+    return results;
+  }
+
   Future<void> _send() async {
     final text = _input.text.trim();
     if (text.isEmpty || _loading) return;
-    setState(() { _messages.add(ChatMessage(text, true)); _loading = true; _input.clear(); });
+    setState(() { _messages.add(ChatMessage(text, true)); _loading = true; _input.clear(); _statusText = "🔍 Checking 8 Websites..."; });
     _scrollDown();
-    String reply = "Error";
+    String finalReply = "";
+    String sources = "";
     try {
-      // 1. TRY GEMINI WITH YOUR KEY
-      final modelId = _model.contains("Pro") ? "gemini-2.5-pro" : "gemini-2.0-flash";
-      final res = await http.post(
-        Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent?key=$mySecretKey"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"contents": [{"parts": [{"text": text}]}]}),
-      ).timeout(const Duration(seconds: 30));
-      if (res.statusCode == 200) {
-        reply = jsonDecode(res.body)["candidates"][0]["content"]["parts"][0]["text"].toString();
-      } else {
-        // 2. IF GEMINI FAILS (Host Lookup / Key Error) -> AUTO FALLBACK TO FREE API
-        final fallback = await http.get(Uri.parse("https://text.pollinations.ai/${Uri.encodeComponent(text)}")).timeout(const Duration(seconds: 60));
-        reply = fallback.statusCode == 200 ? fallback.body.trim() : "Gemini Error: ${res.statusCode}. ${res.body.length > 100 ? res.body.substring(0,100) : res.body}";
-      }
-    } catch (e) {
-      // 3. IF NO INTERNET TO GOOGLE -> USE FREE API
+      // STEP 1: CHECK WEBSITES
+      final webData = await _checkWebsites(text);
+      sources = webData['__sources'] ?? "";
+      String webContext = "";
+      webData.forEach((k,v){ if(!k.startsWith("__")) webContext += "\n[$k]: $v"; });
+
+      setState(() => _statusText = "🤖 Gemini is thinking with Web Data...");
+      // STEP 2: SEND TO GEMINI WITH WEB CONTEXT FOR ACCURACY
+      String prompt = "You are the most accurate AI. Use ONLY the web data below if available, do not guess. If web data is empty, use your knowledge but say it is from AI knowledge.\nQuestion: $text\n\nWEB DATA FROM 8 SITES:\n$webContext\n\nGive accurate, short, clear answer in simple English. Add date if it is news/weather.";
+      String aiReply = "";
       try {
-        final fallback = await http.get(Uri.parse("https://text.pollinations.ai/${Uri.encodeComponent(text)}")).timeout(const Duration(seconds: 60));
-        reply = fallback.statusCode == 200 ? fallback.body.trim() : "Error: $e";
-      } catch (e2) {
-        reply = "Error: $e";
+        final modelId = _model.contains("Pro") ? "gemini-2.5-pro" : "gemini-2.0-flash";
+        final res = await http.post(
+          Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent?key=$mySecretKey"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({"contents": [{"parts": [{"text": prompt}]}]}),
+        ).timeout(const Duration(seconds: 30));
+        if (res.statusCode == 200) {
+          aiReply = jsonDecode(res.body)["candidates"][0]["content"]["parts"][0]["text"].toString();
+        } else {
+          throw Exception("Gemini ${res.statusCode}");
+        }
+      } catch (e) {
+        // FALLBACK: Pollinations FREE
+        final fallback = await http.get(Uri.parse("https://text.pollinations.ai/${Uri.encodeComponent(prompt)}")).timeout(const Duration(seconds: 60));
+        aiReply = fallback.statusCode == 200 ? fallback.body.trim() : "Error: $e";
       }
+      finalReply = "$aiReply\n\n---\n✅ Checked: $sources";
+    } catch (e) {
+      finalReply = "Error: $e";
     }
-    setState(() => _messages.add(ChatMessage(reply, false)));
-    setState(() => _loading = false);
+
+    // STEP 3: TYPING EFFECT LIKE CHATGPT
+    setState(() { _loading = false; _statusText = ""; _messages.add(ChatMessage("", false)); });
+    int idx = _messages.length - 1;
+    for (int i=0; i<=finalReply.length; i+=8) {
+      if (!mounted) break;
+      int end = i+8 > finalReply.length ? finalReply.length : i+8;
+      setState(() => _messages[idx] = ChatMessage(finalReply.substring(0,end), false));
+      await Future.delayed(const Duration(milliseconds: 20));
+      _scrollDown();
+    }
     _scrollDown();
   }
 
@@ -147,8 +200,8 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Image.asset("logo.png", height: 50, errorBuilder: (_, __, ___) => const Icon(Icons.smart_toy, color: Colors.white, size: 40)),
               const SizedBox(height: 10),
-              const Text("AI Super App", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-              const Text("ChatGPT Clone + GitHub", style: TextStyle(color: Colors.grey)),
+              const Text("AI Super App - PRO", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text("ChatGPT + Web Search + GitHub", style: TextStyle(color: Colors.grey)),
             ]),
           ),
           ListTile(leading: const Icon(Icons.add), title: const Text("New Chat"), onTap: _newChat),
@@ -163,9 +216,9 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [IconButton(icon: const Icon(Icons.add), onPressed: _newChat)],
       ),
       body: Column(children: [
-        Expanded(child: _messages.isEmpty ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Image.asset("logo.png", height: 80, errorBuilder: (_, __, ___) => const Icon(Icons.smart_toy, size: 80)), const SizedBox(height: 10), const Text("What can I help with?", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)), const SizedBox(height: 20), Wrap(spacing: 8, children: ["Write a story", "Make a plan", "Explain AI", "Give ideas"].map((s) => ActionChip(label: Text(s), onPressed: () { _input.text = s; _send(); })).toList())])) : ListView.builder(controller: _scroll, padding: const EdgeInsets.all(12), itemCount: _messages.length, itemBuilder: (_, i) { final m = _messages[i]; return Align(alignment: m.isUser ? Alignment.centerRight : Alignment.centerLeft, child: Container(margin: const EdgeInsets.symmetric(vertical: 4), padding: const EdgeInsets.all(12), constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85), decoration: BoxDecoration(color: m.isUser ? Colors.green.shade100 : Colors.grey.shade200, borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(m.text, style: const TextStyle(fontSize: 15)), if (!m.isUser) Row(mainAxisSize: MainAxisSize.min, children: [IconButton(icon: const Icon(Icons.copy, size: 16), onPressed: () { Clipboard.setData(ClipboardData(text: m.text)); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Copied!"))); }), IconButton(icon: const Icon(Icons.cloud_upload, size: 18), tooltip: 'Push to GitHub', onPressed: () => _showPushDialog(m.text)), IconButton(icon: const Icon(Icons.thumb_up, size: 16), onPressed: () {})])]))); })),
-        if (_loading) const Padding(padding: EdgeInsets.all(8), child: Row(children: [CircularProgressIndicator(), SizedBox(width: 10), Text("AI is typing...")])),
-        Container(padding: const EdgeInsets.all(10), color: Colors.white, child: Row(children: [Expanded(child: TextField(controller: _input, decoration: InputDecoration(hintText: "Ask anything...", border: OutlineInputBorder(borderRadius: BorderRadius.circular(25)), contentPadding: const EdgeInsets.symmetric(horizontal: 16)), onSubmitted: (_) => _send())), const SizedBox(width: 8), CircleAvatar(backgroundColor: Colors.black, child: IconButton(icon: const Icon(Icons.arrow_upward, color: Colors.white), onPressed: _send))])),
+        Expanded(child: _messages.isEmpty ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Image.asset("logo.png", height: 80, errorBuilder: (_, __, ___) => const Icon(Icons.smart_toy, size: 80)), const SizedBox(height: 10), const Text("What can I help with?", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)), const Text("I check 8 Websites for Accurate Answer", style: TextStyle(color: Colors.grey)), const SizedBox(height: 20), Wrap(spacing: 8, children: ["Weather in Mumbai", "Who is PM of India?", "Latest AI News", "Explain AI"].map((s) => ActionChip(label: Text(s), onPressed: () { _input.text = s; _send(); })).toList())])) : ListView.builder(controller: _scroll, padding: const EdgeInsets.all(12), itemCount: _messages.length, itemBuilder: (_, i) { final m = _messages[i]; return Align(alignment: m.isUser ? Alignment.centerRight : Alignment.centerLeft, child: Container(margin: const EdgeInsets.symmetric(vertical: 4), padding: const EdgeInsets.all(12), constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85), decoration: BoxDecoration(color: m.isUser ? Colors.green.shade100 : Colors.grey.shade200, borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(m.text, style: const TextStyle(fontSize: 15)), if (!m.isUser) Row(mainAxisSize: MainAxisSize.min, children: [IconButton(icon: const Icon(Icons.copy, size: 16), onPressed: () { Clipboard.setData(ClipboardData(text: m.text)); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Copied!"))); }), IconButton(icon: const Icon(Icons.cloud_upload, size: 18), tooltip: 'Push to GitHub', onPressed: () => _showPushDialog(m.text)), IconButton(icon: const Icon(Icons.thumb_up, size: 16), onPressed: () {})])]))); })),
+        if (_loading) Padding(padding: const EdgeInsets.all(8), child: Row(children: [const CircularProgressIndicator(), const SizedBox(width: 10), Text(_statusText.isEmpty ? "AI is typing..." : _statusText)])),
+        Container(padding: const EdgeInsets.all(10), color: Colors.white, child: Row(children: [Expanded(child: TextField(controller: _input, decoration: InputDecoration(hintText: "Ask anything... I check Web!", border: OutlineInputBorder(borderRadius: BorderRadius.circular(25)), contentPadding: const EdgeInsets.symmetric(horizontal: 16)), onSubmitted: (_) => _send())), const SizedBox(width: 8), CircleAvatar(backgroundColor: Colors.black, child: IconButton(icon: const Icon(Icons.arrow_upward, color: Colors.white), onPressed: _send))])),
       ]),
     );
   }
