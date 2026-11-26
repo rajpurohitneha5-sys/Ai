@@ -104,7 +104,7 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() { _messages.add(ChatMessage(text, true)); _loading = true; _input.clear(); });
     _scrollDown();
     try {
-      final modelId = _model.contains("Pro") ? "gemini-1.5-pro" : "gemini-1.5-flash";
+      final modelId = _model.contains("Pro") ? "gemini-2.5-pro" : "gemini-2.0-flash";
       final res = await http.post(Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent?key=$_savedKey"), headers: {"Content-Type": "application/json"}, body: jsonEncode({"contents": [{"parts": [{"text": text}]}]}));
       String reply = "Error";
       if (res.statusCode == 200) {
