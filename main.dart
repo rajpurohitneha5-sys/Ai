@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+
+// 👇 PASTE YOUR NEW GEMINI KEY HERE ONLY - INSIDE " " 👇
 const String mySecretKey = "AQ.Ab8RN6LVwavoZSPnRADf_XKcn6AQH6nCv-Kgfa1ziEN6UQY9XA";
 
 void main() => runApp(const ChatGPTApp());
@@ -32,13 +34,11 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _input = TextEditingController();
-  final TextEditingController _keyInput = TextEditingController();
   final ScrollController _scroll = ScrollController();
   List<ChatMessage> _messages = [];
   List<List<ChatMessage>> _history = [];
-  String _model = "Gemini 1.5 Flash";
+  String _model = "Gemini 2.0 Flash";
   bool _loading = false;
-  String _savedKey = mySecretKey;
   String _githubToken = '';
   String _githubOwner = '';
   String _githubRepo = 'ai';
@@ -100,22 +100,34 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _send() async {
     final text = _input.text.trim();
     if (text.isEmpty || _loading) return;
-    if (_savedKey.isEmpty) { _showKeyDialog(); return; }
     setState(() { _messages.add(ChatMessage(text, true)); _loading = true; _input.clear(); });
     _scrollDown();
+    String reply = "Error";
     try {
+      // 1. TRY GEMINI WITH YOUR KEY
       final modelId = _model.contains("Pro") ? "gemini-2.5-pro" : "gemini-2.0-flash";
-      final res = await http.post(Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent?key=$_savedKey"), headers: {"Content-Type": "application/json"}, body: jsonEncode({"contents": [{"parts": [{"text": text}]}]}));
-      String reply = "Error";
+      final res = await http.post(
+        Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent?key=$mySecretKey"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"contents": [{"parts": [{"text": text}]}]}),
+      ).timeout(const Duration(seconds: 30));
       if (res.statusCode == 200) {
         reply = jsonDecode(res.body)["candidates"][0]["content"]["parts"][0]["text"].toString();
       } else {
-        reply = "API Error: Check Key. ${res.body.length > 200 ? res.body.substring(0, 200) : res.body}";
+        // 2. IF GEMINI FAILS (Host Lookup / Key Error) -> AUTO FALLBACK TO FREE API
+        final fallback = await http.get(Uri.parse("https://text.pollinations.ai/${Uri.encodeComponent(text)}")).timeout(const Duration(seconds: 60));
+        reply = fallback.statusCode == 200 ? fallback.body.trim() : "Gemini Error: ${res.statusCode}. ${res.body.length > 100 ? res.body.substring(0,100) : res.body}";
       }
-      setState(() => _messages.add(ChatMessage(reply, false)));
     } catch (e) {
-      setState(() => _messages.add(ChatMessage("Error: $e", false)));
+      // 3. IF NO INTERNET TO GOOGLE -> USE FREE API
+      try {
+        final fallback = await http.get(Uri.parse("https://text.pollinations.ai/${Uri.encodeComponent(text)}")).timeout(const Duration(seconds: 60));
+        reply = fallback.statusCode == 200 ? fallback.body.trim() : "Error: $e";
+      } catch (e2) {
+        reply = "Error: $e";
+      }
     }
+    setState(() => _messages.add(ChatMessage(reply, false)));
     setState(() => _loading = false);
     _scrollDown();
   }
@@ -124,14 +136,6 @@ class _ChatScreenState extends State<ChatScreen> {
     Future.delayed(const Duration(milliseconds: 300), () {
       if (_scroll.hasClients) _scroll.animateTo(_scroll.position.maxScrollExtent, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     });
-  }
-
-  void _showKeyDialog() {
-    showDialog(context: context, builder: (_) => AlertDialog(
-      title: const Text("Enter Gemini API Key"),
-      content: TextField(controller: _keyInput, decoration: const InputDecoration(hintText: "AIzaSy...")),
-      actions: [TextButton(onPressed: () { setState(() => _savedKey = _keyInput.text.trim()); Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Key Saved! Now Chat!"))); }, child: const Text("Save"))],
-    ));
   }
 
   @override
@@ -148,7 +152,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ]),
           ),
           ListTile(leading: const Icon(Icons.add), title: const Text("New Chat"), onTap: _newChat),
-          ListTile(leading: const Icon(Icons.key), title: const Text("Set API Key"), onTap: () { Navigator.pop(context); _showKeyDialog(); }),
           ListTile(leading: const Icon(Icons.code), title: const Text("Connect GitHub"), onTap: () { Navigator.pop(context); _showGithubDialog(); }),
           const Divider(),
           const Padding(padding: EdgeInsets.all(8), child: Text("CHAT HISTORY", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
@@ -156,7 +159,7 @@ class _ChatScreenState extends State<ChatScreen> {
         ]),
       ),
       appBar: AppBar(backgroundColor: Colors.white, elevation: 1, iconTheme: const IconThemeData(color: Colors.black),
-        title: DropdownButton<String>(value: _model, underline: const SizedBox(), items: const [DropdownMenuItem(value: "Gemini 1.5 Flash", child: Text("Gemini 1.5 Flash ▼", style: TextStyle(fontWeight: FontWeight.bold))), DropdownMenuItem(value: "Gemini 1.5 Pro", child: Text("Gemini 1.5 Pro ▼", style: TextStyle(fontWeight: FontWeight.bold)))], onChanged: (v) => setState(() => _model = v!)),
+        title: DropdownButton<String>(value: _model, underline: const SizedBox(), items: const [DropdownMenuItem(value: "Gemini 2.0 Flash", child: Text("Gemini 2.0 Flash ▼", style: TextStyle(fontWeight: FontWeight.bold))), DropdownMenuItem(value: "Gemini 2.5 Pro", child: Text("Gemini 2.5 Pro ▼", style: TextStyle(fontWeight: FontWeight.bold)))], onChanged: (v) => setState(() => _model = v!)),
         actions: [IconButton(icon: const Icon(Icons.add), onPressed: _newChat)],
       ),
       body: Column(children: [
