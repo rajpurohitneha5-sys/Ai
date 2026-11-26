@@ -13,8 +13,13 @@ jobs:
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
-      - run: mkdir -p lib
-      - run: if [ -f main.dart ]; then cp main.dart lib/main.dart; fi
+      - run: cp main.dart /tmp/main.dart
+      - run: cp pubspec.yaml /tmp/pubspec.yaml
+      - run: cp logo.png /tmp/logo.png || echo "no logo"
+      - run: flutter create . --project-name ai --org com.aisuper.app --platforms android --overwrite
+      - run: cp /tmp/main.dart lib/main.dart
+      - run: cp /tmp/pubspec.yaml pubspec.yaml
+      - run: cp /tmp/logo.png logo.png || echo "no logo"
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
