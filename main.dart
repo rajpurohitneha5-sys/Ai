@@ -41,12 +41,12 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _loading = false;
   String _savedKey = "";
 
-  void _newChat() {
+    void _newChat() {
     if (_messages.isNotEmpty) {
       _history.insert(0, List.from(_messages));
     }
     setState(() => _messages = []);
-    Navigator.pop(context);
+    try { Navigator.pop(context); } catch (e) {}
   }
 
   void _loadHistory(int i) {
