@@ -22,8 +22,8 @@ flutter:
   assets:
     - logo.png
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
-  ios: true
+  ios: false
   image_path: "logo.png"
   min_sdk_android: 21
