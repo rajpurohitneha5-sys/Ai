@@ -6,34 +6,29 @@ void main() {
   runApp(const MyApp());
 }
 
-const String apiKey = "Ab8RN6Iew00mjwjZNsn7isAG5N0NMpRQKbZ5_HS3tSVYE_Pwmw";
+const String apiKey = "AQ.Ab8RN6JqMxHcb8O5xx7NMHCtFVlYmJnrqho6_G7eygpZ3ko_mQ";
 
 Future<String> askAI(String prompt) async {
   try {
     final res = await http.post(
-      Uri.parse("https://api.openai.com/v1/chat/completions"),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer $apiKey",
-      },
+      Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"),
+      headers: {"Content-Type": "application/json"},
       body: jsonEncode({
-        "model": "gpt-3.5-turbo",
-        "messages": [
-          {"role": "user", "content": prompt}
+        "contents": [
+          {"parts": [{"text": prompt}]}
         ]
       }),
     );
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
-      return data["choices"][0]["message"]["content"].toString();
+      return data["candidates"][0]["content"]["parts"][0]["text"].toString();
     } else {
-      return "API Error: ${res.statusCode}\n${res.body}";
+      return "API Error: ${res.body}";
     }
   } catch (e) {
     return "Error: $e";
   }
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
