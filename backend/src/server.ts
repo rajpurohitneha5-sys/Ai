@@ -4,7 +4,15 @@ import cors from 'cors';
 
 const app = express();
 const allowedOrigin = process.env.ALLOWED_ORIGIN;
-app.use(cors({ origin: allowedOrigin || '*', methods: ['GET','POST'], allowedHeaders: ['Authorization','Content-Type'] }));
+app.use(cors({
+  origin: (origin, callback) => {
+    // Native clients do not send Origin. Browser origins must be explicitly configured.
+    if (!origin || (allowedOrigin && origin === allowedOrigin)) return callback(null, true);
+    return callback(new Error('Origin not allowed'));
+  },
+  methods: ['GET','POST'],
+  allowedHeaders: ['Authorization','Content-Type']
+}));
 app.use(express.json({ limit: '8mb' }));
 const port = Number(process.env.PORT || 8787);
 const apiToken = process.env.AI_GATEWAY_TOKEN;
@@ -27,33 +35,56 @@ app.get('/v1/models', protectedRoute, (_req, res) => {
 app.post('/v1/chat/completions', protectedRoute, async (req, res) => {
   if (!apiKey || !model) return res.status(503).json({ error: 'Provider is not configured on the gateway.' });
   const { messages, stream = true, model: requestedModel } = req.body ?? {};
+  if (typeof stream !== 'boolean') return res.status(400).json({ error: 'stream must be a boolean.' });
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > 200) return res.status(400).json({ error: 'messages must be a non-empty array with at most 200 entries' });
-  if (!messages.every((m: any) => m && typeof m.role === 'string' && typeof m.content === 'string' && m.role.length <= 32 && m.content.length <= 1_000_000)) {
-    return res.status(400).json({ error: 'Each message must contain a valid role and text content.' });
+  if (!messages.every((m: any) => m && ['system','user','assistant','tool'].includes(m.role) && typeof m.content === 'string' && m.content.length <= 1_000_000)) {
+    return res.status(400).json({ error: 'Each message must contain an allowed role and text content.' });
   }
+  const totalContentLength = messages.reduce((total: number, m: any) => total + m.content.length, 0);
+  if (totalContentLength > 4_000_000) return res.status(413).json({ error: 'Total message content exceeds 4 MB.' });
   const safeModel = typeof requestedModel === 'string' && requestedModel.trim() ? requestedModel.trim() : model;
+  if (safeModel !== model) return res.status(400).json({ error: 'Requested model is not enabled on this gateway.' });
+
+  const controller = new AbortController();
+  let clientDisconnected = false;
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      clientDisconnected = true;
+      controller.abort();
+    }
+  });
+
   try {
     const upstream = await fetch(`${base}/chat/completions`, {
       method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: safeModel, messages, stream: Boolean(stream) })
+      body: JSON.stringify({ model: safeModel, messages, stream }),
+      signal: controller.signal
     });
     if (!upstream.ok) {
       const detail = await upstream.text();
-      return res.status(upstream.status).json({ error: 'Provider error', detail: detail.slice(0, 4000) });
+      if (!clientDisconnected) return res.status(upstream.status).json({ error: 'Provider error', detail: detail.slice(0, 4000) });
+      return;
     }
     if (!stream) return res.status(200).json(await upstream.json());
     res.status(200); res.setHeader('Content-Type', 'text/event-stream'); res.setHeader('Cache-Control', 'no-cache, no-transform'); res.setHeader('Connection', 'keep-alive');
     if (!upstream.body) return res.end();
     const reader = upstream.body.getReader();
-    let disconnected = false;
-    res.on('close', () => { if (!res.writableEnded) { disconnected = true; void reader.cancel().catch(() => {}); } });
-    while (!disconnected) {
+    while (!clientDisconnected) {
       const { done, value } = await reader.read();
       if (done) break;
-      if (!res.write(value)) await new Promise<void>(resolve => res.once('drain', resolve));
+      if (!res.write(value)) {
+        await new Promise<void>((resolve, reject) => {
+          const cleanup = () => { res.off('drain', onDrain); res.off('close', onClose); };
+          const onDrain = () => { cleanup(); resolve(); };
+          const onClose = () => { cleanup(); resolve(); };
+          res.once('drain', onDrain);
+          res.once('close', onClose);
+        });
+      }
     }
-    if (!res.writableEnded) res.end();
+    if (!res.writableEnded && !clientDisconnected) res.end();
   } catch (err) {
+    if (clientDisconnected || controller.signal.aborted) return;
     console.error('Gateway request failed', err);
     if (!res.headersSent) res.status(502).json({ error: 'Provider request failed' }); else if (!res.writableEnded) res.end();
   }
