@@ -69,13 +69,17 @@ app.post('/v1/chat/completions', protectedRoute, async (req, res) => {
       body: JSON.stringify({ model: safeModel, messages, stream }),
       signal: controller.signal
     });
-    clearInactivityTimer();
     if (!upstream.ok) {
+      clearInactivityTimer();
       await upstream.text(); // Consume the body without exposing provider diagnostics or secrets to the client.
       if (!clientDisconnected) return res.status(upstream.status).json({ error: 'Provider request was rejected or failed.' });
       return;
     }
-    if (!stream) return res.status(200).json(await upstream.json());
+    if (!stream) {
+      try { const payload = await upstream.json(); clearInactivityTimer(); return res.status(200).json(payload); }
+      catch (err) { clearInactivityTimer(); throw err; }
+    }
+    clearInactivityTimer();
     res.status(200); res.setHeader('Content-Type', 'text/event-stream'); res.setHeader('Cache-Control', 'no-cache, no-transform'); res.setHeader('Connection', 'keep-alive');
     if (!upstream.body) return res.end();
     const reader = upstream.body.getReader();
