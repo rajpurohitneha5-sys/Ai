@@ -35,6 +35,8 @@ private val Panel = Color(0xFF1B1B1B)
 private val Gold = Color(0xFFD6B45B)
 private val White = Color(0xFFF5F5F5)
 
+data class ChatMessage(val text:String,val isUser:Boolean,val id:String)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,7 +67,6 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
     var error by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     var activeCall by remember { mutableStateOf<StreamingGatewayClient?>(null) }
-    data class ChatMessage(val text:String,val isUser:Boolean,val id:String)
     fun loadChat(id:String?) { selectedId=id; messages=id?.let { store.messages(it).map { m -> ChatMessage(m.content,m.role=="user",m.id) } } ?: emptyList() }
     fun newChat() { val id=store.createConversation("New chat",model); loadChat(id); error=""; historyOpen=false }
 
