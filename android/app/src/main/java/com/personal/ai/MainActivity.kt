@@ -56,11 +56,12 @@ class MainActivity : ComponentActivity() {
         val oldPrefs = getSharedPreferences("ai_config", MODE_PRIVATE)
         if (!prefs.contains("endpoint") && !prefs.contains("token") &&
             (oldPrefs.contains("endpoint") || oldPrefs.contains("token"))) {
-            prefs.edit()
+            val migrationSucceeded = prefs.edit()
                 .putString("endpoint", oldPrefs.getString("endpoint", "") ?: "")
                 .putString("token", oldPrefs.getString("token", "") ?: "")
                 .commit()
-            oldPrefs.edit().clear().commit()
+            // Preserve the plaintext source until the encrypted copy is confirmed durable.
+            if (migrationSucceeded) oldPrefs.edit().clear().commit()
         }
         val legacy = ChatStore(this)
         val workspace = WorkspaceStore(this)
