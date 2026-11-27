@@ -12,7 +12,8 @@ import java.util.concurrent.TimeUnit
 class StreamingGatewayClient(private val endpoint: String, private val token: String) {
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.MILLISECONDS)
+        // Detect a stalled provider while allowing long responses that continue sending data.
+        .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
     @Volatile private var active: Call? = null
