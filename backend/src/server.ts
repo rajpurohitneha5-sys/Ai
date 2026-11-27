@@ -63,7 +63,7 @@ app.post('/v1/chat/completions', protectedRoute, async (req, res) => {
 
   try {
     // Non-streaming calls are bounded; streaming uses a renewable inactivity deadline.
-    if (!stream) armInactivityTimer(90_000);
+    // Bound the wait for upstream headers for both modes.\n    armInactivityTimer(90_000);
     const upstream = await fetch(`${base}/chat/completions`, {
       method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: safeModel, messages, stream }),
