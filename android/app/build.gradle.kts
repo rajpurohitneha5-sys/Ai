@@ -20,6 +20,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.security:security-crypto:1.0.0")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.10.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
