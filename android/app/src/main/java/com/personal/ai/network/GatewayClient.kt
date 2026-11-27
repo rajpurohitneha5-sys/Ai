@@ -38,7 +38,7 @@ class GatewayClient(private val endpoint: String, private val token: String) {
             .post(payload.toString().toRequestBody("application/json".toMediaType())).build()
         client.newCall(request).execute().use { response ->
             val body = response.body?.string().orEmpty()
-            if (!response.isSuccessful) throw IllegalStateException("Gateway HTTP ${response.code}: ${body.take(2000)}")
+            if (!response.isSuccessful) throw IllegalStateException("Gateway request failed (HTTP ${response.code}).")
             val root = JSONObject(body)
             root.optJSONArray("choices")?.optJSONObject(0)?.optJSONObject("message")?.optString("content")
                 ?: throw IllegalStateException("Unexpected gateway response")
