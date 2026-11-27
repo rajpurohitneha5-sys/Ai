@@ -52,7 +52,7 @@ class GatewayClient(private val endpoint: String, private val token: String) {
             .header("Authorization", "Bearer $token").get().build()
         client.newCall(request).execute().use { response ->
             val body = response.body?.string().orEmpty()
-            if (!response.isSuccessful) throw IllegalStateException("Gateway HTTP ${response.code}: ${body.take(2000)}")
+            if (!response.isSuccessful) throw IllegalStateException("Gateway request failed (HTTP ${response.code}).")
             JSONObject(body).optJSONArray("data") ?: JSONArray()
         }
     }

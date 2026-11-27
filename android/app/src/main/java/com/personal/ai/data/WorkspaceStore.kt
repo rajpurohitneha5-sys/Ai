@@ -109,7 +109,7 @@ class WorkspaceStore(context: Context) : SQLiteOpenHelper(context, "ai_workspace
     }
     fun saveMemory(id: String?, content: String) {
         val now=System.currentTimeMillis(); val key=id?:UUID.randomUUID().toString()
-        writableDatabase.execSQL("INSERT OR REPLACE INTO memories(id,content,created_at,updated_at,enabled) VALUES(?,?,?,?,1)",arrayOf(key,content,now,now))
+        writableDatabase.execSQL("INSERT INTO memories(id,content,created_at,updated_at,enabled) VALUES(?,?,?,?,1) ON CONFLICT(id) DO UPDATE SET content=excluded.content,updated_at=excluded.updated_at,enabled=1",arrayOf(key,content,now,now))
     }
     fun memories(): List<MemoryItem> {
         val out=mutableListOf<MemoryItem>()
