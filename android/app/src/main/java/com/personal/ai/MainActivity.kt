@@ -80,7 +80,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                 Box {
                     TextButton(onClick={modelMenu=true}) { Text(if(model.isBlank()) "Choose model" else model,color=Gold) }
                     DropdownMenu(expanded=modelMenu,onDismissRequest={modelMenu=false}) {
-                        modelList.forEach { m -> DropdownMenuItem(text={Text(m)},onClick={model=m;modelMenu=false;selectedId?.let{store.touchConversation(it,m)}) }
+                        modelList.forEach { m -> DropdownMenuItem(text = { Text(m) }, onClick = { model = m; modelMenu = false; selectedId?.let { store.touchConversation(it, m) } }) }
                         DropdownMenuItem(text={Text("Refresh models")},onClick={modelMenu=false;scope.launch { error="";try { modelList=GatewayClient(endpoint,token).listModels().let{arr->(0 until arr.length()).map{arr.getJSONObject(it).optString("id")}.filter{it.isNotBlank()}};if(model.isBlank()&&modelList.isNotEmpty())model=modelList.first() }catch(e:Exception){error=e.message?: "Unable to load models"} } })
                     }
                 }
