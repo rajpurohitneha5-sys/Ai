@@ -96,7 +96,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                 TextField(value=input,onValueChange={input=it},modifier=Modifier.weight(1f),placeholder={Text("Message AI…",color=Color.Gray)},colors=TextFieldDefaults.colors(focusedTextColor=White,unfocusedTextColor=White,focusedContainerColor=Panel,unfocusedContainerColor=Panel,focusedIndicatorColor=Color.Transparent,unfocusedIndicatorColor=Color.Transparent))
                 IconButton(enabled=input.isNotBlank()&&!busy,onClick={
                     val prompt=input.trim();input="";error="";if(selectedId==null) newChat();val cid=selectedId ?: store.createConversation(prompt.take(60),model).also{selectedId=it}
-                    store.addMessage(cid,"user",prompt);messages=messages+ChatMessage(prompt,true,java.util.UUID.randomUUID().toString());busy=true
+                    if (store.messages(cid).isEmpty()) store.renameConversation(cid, prompt.take(64).ifBlank { "New chat" }); store.addMessage(cid,"user",prompt);messages=messages+ChatMessage(prompt,true,java.util.UUID.randomUUID().toString());busy=true
                     scope.launch {
                         var assistantId:String?=null;var streamed=""
                         try {
