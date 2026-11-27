@@ -106,7 +106,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                         try {
                             val payload=JSONArray();store.messages(cid).filter{it.status!="streaming"}.forEach{payload.put(JSONObject().put("role",it.role).put("content",it.content))}
                             val client=StreamingGatewayClient(endpoint,token);activeCall=client
-                            assistantId=java.util.UUID.randomUUID().toString();messages=messages+ChatMessage("",false,assistantId!!);store.addMessage(cid,"assistant","", "streaming")
+                            assistantId=store.addMessage(cid,"assistant","", "streaming");messages=messages+ChatMessage("",false,assistantId!!)
                             val answer=client.stream(payload,model.takeIf{it.isNotBlank()}){delta->streamed+=delta;messages=messages.map{if(it.id==assistantId)it.copy(text=streamed)else it}}
                             if(streamed.isBlank())streamed=answer
                             messages=messages.map{if(it.id==assistantId)it.copy(text=streamed)else it};assistantId?.let { store.updateMessage(it,streamed,"complete") }
