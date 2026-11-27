@@ -268,17 +268,34 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
 @Composable
 private fun MarkdownText(text: String, modifier: Modifier = Modifier) {
     val annotated = buildAnnotatedString {
-        val pattern = Regex("\\*\\*(.+?)\\*\\*|\\x60(.+?)\\x60")
-        var cursor = 0
-        pattern.findAll(text).forEach { match ->
-            append(text.substring(cursor, match.range.first))
-            val bold = match.groups[1]?.value
-            val code = match.groups[2]?.value
-            if (bold != null) withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(bold) }
-            else if (code != null) withStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = Gold)) { append(code) }
-            cursor = match.range.last + 1
+        var inCodeBlock = false
+        text.lines().forEachIndexed { index, line ->
+            if (index > 0) append("\\n")
+            if (line.trim().startsWith("```")) {
+                inCodeBlock = !inCodeBlock
+                return@forEachIndexed
+            }
+            val trimmed = line.trimStart()
+            val heading = Regex("^#{1,3}\\\\s+(.+)$").find(trimmed)?.groupValues?.get(1)
+            val bullet = Regex("^(?:[-*] |\\\\d+\\\\. )(.+)$").find(trimmed)?.groupValues?.get(1)
+            val content = heading ?: bullet ?: line
+            if (heading != null) withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Gold)) { append(heading) }
+            else if (inCodeBlock) withStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = Gold, background = Color(0xFF292929))) { append(line) }
+            else {
+                if (bullet != null) append("• ")
+                val pattern = Regex("\\\\*\\\\*(.+?)\\\\*\\\\*|\\\\x60(.+?)\\\\x60")
+                var cursor = 0
+                pattern.findAll(content).forEach { match ->
+                    append(content.substring(cursor, match.range.first))
+                    val bold = match.groups[1]?.value
+                    val code = match.groups[2]?.value
+                    if (bold != null) withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(bold) }
+                    else if (code != null) withStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = Gold)) { append(code) }
+                    cursor = match.range.last + 1
+                }
+                append(content.substring(cursor))
+            }
         }
-        append(text.substring(cursor))
     }
     Text(annotated, color = White, modifier = modifier)
 }
