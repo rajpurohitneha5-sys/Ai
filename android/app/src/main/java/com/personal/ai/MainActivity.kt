@@ -55,7 +55,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
     var input by remember { mutableStateOf("") }
     var endpoint by remember { mutableStateOf(initialEndpoint) }
     var token by remember { mutableStateOf(initialToken) }
-    var model by remember { mutableStateOf("") }
+    var model by remember { mutableStateOf(store.listConversations().firstOrNull { !it.archived }?.model ?: "") }
     var modelList by remember { mutableStateOf(listOf<String>()) }
     var modelMenu by remember { mutableStateOf(false) }
     var settingsOpen by remember { mutableStateOf(false) }
