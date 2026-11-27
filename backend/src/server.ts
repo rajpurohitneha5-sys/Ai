@@ -61,8 +61,8 @@ app.post('/v1/chat/completions', protectedRoute, async (req, res) => {
       signal: controller.signal
     });
     if (!upstream.ok) {
-      const detail = await upstream.text();
-      if (!clientDisconnected) return res.status(upstream.status).json({ error: 'Provider error', detail: detail.slice(0, 4000) });
+      await upstream.text(); // Consume the body without exposing provider diagnostics or secrets to the client.
+      if (!clientDisconnected) return res.status(upstream.status).json({ error: 'Provider request was rejected or failed.' });
       return;
     }
     if (!stream) return res.status(200).json(await upstream.json());
