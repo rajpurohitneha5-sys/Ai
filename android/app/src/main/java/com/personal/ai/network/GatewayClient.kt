@@ -14,8 +14,11 @@ import java.util.concurrent.TimeUnit
 /** Minimal gateway client. Configure endpoint/token through protected app configuration; do not hard-code secrets. */
 class GatewayClient(private val endpoint: String, private val token: String) {
     private val client = OkHttpClient.Builder()
-        .connectTimeout(20, TimeUnit.SECONDS).readTimeout(0, TimeUnit.MILLISECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS).build()
+        .connectTimeout(20, TimeUnit.SECONDS)
+        // Non-streaming requests and model discovery must not hang indefinitely.
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(90, TimeUnit.SECONDS).build()
 
     private fun validatedBase(): String {
         val normalized = endpoint.trim().trimEnd('/')
