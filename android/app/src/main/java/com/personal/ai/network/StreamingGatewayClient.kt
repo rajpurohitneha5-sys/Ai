@@ -34,7 +34,7 @@ class StreamingGatewayClient(private val endpoint: String, private val token: St
         var streamDone = false
         try {
             call.execute().use { response ->
-                if (!response.isSuccessful) throw IOException("Gateway HTTP ${response.code}: ${response.body?.string().orEmpty().take(2000)}")
+                if (!response.isSuccessful) throw IOException("Gateway request failed (HTTP ${response.code}).")
                 val source = response.body?.source() ?: throw IOException("Empty stream")
                 var eventData = StringBuilder()
                 fun processEvent() {
