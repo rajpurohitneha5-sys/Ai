@@ -19,7 +19,7 @@ class StreamingGatewayClient(private val endpoint: String, private val token: St
     @Volatile private var active: Call? = null
 
     suspend fun stream(messages: org.json.JSONArray, model: String?, onDelta: (String) -> Unit): String = withContext(Dispatchers.IO) {
-        val normalized = endpoint.trim().trimEnd("/")
+        val normalized = endpoint.trim().trimEnd('/')
         val parsed = normalized.toHttpUrlOrNull() ?: throw IllegalArgumentException("Gateway URL is invalid.")
         require(parsed.scheme == "https" && parsed.host.isNotBlank()) { "Gateway URL must use HTTPS." }
         require(parsed.username.isEmpty() && parsed.password.isEmpty()) { "Do not include credentials in the gateway URL." }
