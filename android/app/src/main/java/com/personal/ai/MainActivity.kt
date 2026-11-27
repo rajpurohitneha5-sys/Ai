@@ -111,7 +111,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                             if(streamed.isBlank())streamed=answer
                             messages=messages.map{if(it.id==assistantId)it.copy(text=streamed)else it};assistantId?.let { store.updateMessage(it,streamed,"complete") }
                             store.touchConversation(cid,model)
-                        }catch(e:Exception){error=e.message?: "Request failed";if(assistantId!=null){messages=messages.map{if(it.id==assistantId)it.copy(text=if(streamed.isNotBlank())streamed else "Generation stopped or failed. Please retry.")else it};assistantId?.let { store.updateMessage(it,streamed,"interrupted") }}else messages=messages+ChatMessage("I couldn't complete that request. Check your connection and gateway configuration, then retry.",false,java.util.UUID.randomUUID().toString())}
+                        }catch(e:Exception){error=e.message?: "Request failed";if(assistantId!=null){val savedText=streamed.ifBlank{"Generation stopped or failed. Please retry."};messages=messages.map{if(it.id==assistantId)it.copy(text=savedText)else it};assistantId?.let { store.updateMessage(it,savedText,"interrupted") }}else messages=messages+ChatMessage("I couldn't complete that request. Check your connection and gateway configuration, then retry.",false,java.util.UUID.randomUUID().toString())}
                         finally{busy=false;activeCall=null;loadChat(cid)}
                     }
                 }){Icon(Icons.Default.Send,"Send",tint=Gold)}
