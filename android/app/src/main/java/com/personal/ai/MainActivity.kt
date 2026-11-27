@@ -52,6 +52,16 @@ class MainActivity : ComponentActivity() {
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
+        // One-time migration from the previous plaintext settings store.
+        val oldPrefs = getSharedPreferences("ai_config", MODE_PRIVATE)
+        if (!prefs.contains("endpoint") && !prefs.contains("token") &&
+            (oldPrefs.contains("endpoint") || oldPrefs.contains("token"))) {
+            prefs.edit()
+                .putString("endpoint", oldPrefs.getString("endpoint", "") ?: "")
+                .putString("token", oldPrefs.getString("token", "") ?: "")
+                .commit()
+            oldPrefs.edit().clear().commit()
+        }
         val legacy = ChatStore(this)
         val workspace = WorkspaceStore(this)
         workspace.migrateLegacy(legacy.load())
