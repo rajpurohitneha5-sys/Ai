@@ -270,20 +270,20 @@ private fun MarkdownText(text: String, modifier: Modifier = Modifier) {
     val annotated = buildAnnotatedString {
         var inCodeBlock = false
         text.lines().forEachIndexed { index, line ->
-            if (index > 0) append("\\n")
+            if (index > 0) append("\n")
             if (line.trim().startsWith("```")) {
                 inCodeBlock = !inCodeBlock
                 return@forEachIndexed
             }
             val trimmed = line.trimStart()
-            val heading = Regex("^#{1,3}\\\\s+(.+)$").find(trimmed)?.groupValues?.get(1)
-            val bullet = Regex("^(?:[-*] |\\\\d+\\\\. )(.+)$").find(trimmed)?.groupValues?.get(1)
+            val heading = Regex("^#{1,3}\\s+(.+)$").find(trimmed)?.groupValues?.get(1)
+            val bullet = Regex("^(?:[-*] |\\d+\\. )(.+)$").find(trimmed)?.groupValues?.get(1)
             val content = heading ?: bullet ?: line
             if (heading != null) withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Gold)) { append(heading) }
             else if (inCodeBlock) withStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = Gold, background = Color(0xFF292929))) { append(line) }
             else {
                 if (bullet != null) append("• ")
-                val pattern = Regex("\\\\*\\\\*(.+?)\\\\*\\\\*|\\\\x60(.+?)\\\\x60")
+                val pattern = Regex("\\*\\*(.+?)\\*\\*|\\x60(.+?)\\x60")
                 var cursor = 0
                 pattern.findAll(content).forEach { match ->
                     append(content.substring(cursor, match.range.first))
