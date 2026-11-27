@@ -43,8 +43,8 @@ class WorkspaceStore(context: Context) : SQLiteOpenHelper(context, "ai_workspace
 
     fun updateMessage(id: String, content: String, status: String) { writableDatabase.execSQL("UPDATE messages SET content=?,status=? WHERE id=?", arrayOf(content,status,id)) }
     fun renameConversation(id: String, title: String) { writableDatabase.execSQL("UPDATE conversations SET title=?,updated_at=? WHERE id=?", arrayOf(title,System.currentTimeMillis(),id)) }
-    fun setPinned(id: String, value: Boolean) { writableDatabase.execSQL("UPDATE conversations SET pinned=? WHERE id=?", arrayOf(if(value)1 else 0,id)) }
-    fun setArchived(id: String, value: Boolean) { writableDatabase.execSQL("UPDATE conversations SET archived=? WHERE id=?", arrayOf(if(value)1 else 0,id)) }
+    fun setPinned(id: String, value: Boolean) { writableDatabase.execSQL("UPDATE conversations SET pinned=?,updated_at=? WHERE id=?", arrayOf(if(value)1 else 0,System.currentTimeMillis(),id)) }
+    fun setArchived(id: String, value: Boolean) { writableDatabase.execSQL("UPDATE conversations SET archived=?,updated_at=? WHERE id=?", arrayOf(if(value)1 else 0,System.currentTimeMillis(),id)) }
 
     fun deleteConversation(id: String) {
         val db = writableDatabase
@@ -95,7 +95,7 @@ class WorkspaceStore(context: Context) : SQLiteOpenHelper(context, "ai_workspace
         } finally { db.endTransaction() }
     }
 
-    fun removeMessage(id: String) { writableDatabase.delete("messages","id=?",arrayOf(id)) }
+    fun removeMessage(id: String) {\n        val db=writableDatabase\n        db.beginTransaction()\n        try {\n            val conversationId=db.rawQuery("SELECT conversation_id FROM messages WHERE id=?",arrayOf(id)).use { if(it.moveToFirst()) it.getString(0) else null }\n            db.delete("messages","id=?",arrayOf(id))\n            if(conversationId!=null) db.execSQL("UPDATE conversations SET updated_at=? WHERE id=?",arrayOf(System.currentTimeMillis(),conversationId))\n            db.setTransactionSuccessful()\n        } finally { db.endTransaction() }\n    }
     fun updateMessageStatus(id: String,status:String) { writableDatabase.execSQL("UPDATE messages SET status=? WHERE id=?",arrayOf(status,id)) }
     fun addProject(name: String, instructions: String = ""): String {
         val id=UUID.randomUUID().toString(); val now=System.currentTimeMillis()
