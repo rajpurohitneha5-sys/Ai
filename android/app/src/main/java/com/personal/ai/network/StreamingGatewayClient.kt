@@ -9,11 +9,11 @@ import java.io.IOException
 
 /** OpenAI-compatible SSE streaming client. Cancellation is performed by cancelActive(). */
 class StreamingGatewayClient(private val endpoint: String, private val token: String) {
-    private val client = OkHttpClient.Builder().build()
+    private val client = OkHttpClient.Builder().connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS).readTimeout(0, java.util.concurrent.TimeUnit.MILLISECONDS).writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS).build()
     @Volatile private var active: Call? = null
 
     suspend fun stream(messages: JSONArray, model: String?, onDelta: (String) -> Unit): String = withContext(Dispatchers.IO) {
-        val payload = JSONObject().put("messages", messages).put("stream", true)
+        require(endpoint.isNotBlank()) { "Gateway URL is not configured." }; val payload = JSONObject().put("messages", messages).put("stream", true)
         if (!model.isNullOrBlank()) payload.put("model", model)
         val request = Request.Builder().url(endpoint.trimEnd('/') + "/v1/chat/completions")
             .header("Authorization", "Bearer $token")
@@ -22,7 +22,7 @@ class StreamingGatewayClient(private val endpoint: String, private val token: St
         val accumulated = StringBuilder()
         try {
             call.execute().use { response ->
-                if (!response.isSuccessful) throw IOException("Gateway HTTP ${response.code}: ${response.body?.string().orEmpty()}")
+                if (!response.isSuccessful) throw IOException("Gateway HTTP ${response.code}: ${response.body?.string().orEmpty().take(2000)}")
                 val source = response.body?.source() ?: throw IOException("Empty stream")
                 while (!source.exhausted()) {
                     val line = source.readUtf8Line() ?: continue
