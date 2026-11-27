@@ -11,11 +11,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -78,6 +81,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, saveConfig: (String, String) -> Unit) {
+    val clipboard = LocalClipboardManager.current
     var input by remember { mutableStateOf("") }
     var endpoint by remember { mutableStateOf(initialEndpoint) }
     var token by remember { mutableStateOf(initialToken) }
@@ -195,7 +199,14 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                     items(messages, key = { it.id }) { msg ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = if (msg.isUser) Arrangement.End else Arrangement.Start) {
                             Surface(color = if (msg.isUser) Color(0xFF29251B) else Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.padding(vertical = 5.dp).widthIn(max = 340.dp)) {
-                                MarkdownText(msg.text, modifier = Modifier.padding(12.dp))
+                                Column(Modifier.padding(10.dp)) {
+                                    MarkdownText(msg.text, modifier = Modifier.padding(2.dp))
+                                    if (msg.text.isNotBlank()) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                        IconButton(onClick = { clipboard.setText(AnnotatedString(msg.text)) }, modifier = Modifier.size(28.dp)) {
+                                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy message", tint = Color.Gray, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
