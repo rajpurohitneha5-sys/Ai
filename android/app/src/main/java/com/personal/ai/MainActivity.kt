@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -101,6 +102,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
     var error by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     var activeCall by remember { mutableStateOf<StreamingGatewayClient?>(null) }
+    val chatListState = rememberLazyListState()
 
     fun loadChat(id: String?) {
         selectedId = id
@@ -195,7 +197,10 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                     }
                 }
             } else {
-                LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp), contentPadding = PaddingValues(vertical = 12.dp)) {
+                LaunchedEffect(messages.size, messages.lastOrNull()?.text?.length) {
+                    if (messages.isNotEmpty()) chatListState.scrollToItem(messages.lastIndex)
+                }
+                LazyColumn(state = chatListState, modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp), contentPadding = PaddingValues(vertical = 12.dp)) {
                     items(messages, key = { it.id }) { msg ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = if (msg.isUser) Arrangement.End else Arrangement.Start) {
                             Surface(color = if (msg.isUser) Color(0xFF29251B) else Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.padding(vertical = 5.dp).widthIn(max = 340.dp)) {
