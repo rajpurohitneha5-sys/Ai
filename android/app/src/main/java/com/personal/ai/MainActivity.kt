@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import org.json.JSONArray
 import org.json.JSONObject
 import com.personal.ai.network.GatewayClient
@@ -130,7 +131,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                             val payload=JSONArray();store.messages(cid).filter{it.status!="streaming"}.forEach{payload.put(JSONObject().put("role",it.role).put("content",it.content))}
                             val client=StreamingGatewayClient(endpoint,token);activeCall=client
                             assistantId=store.addMessage(cid,"assistant","", "streaming");messages=messages+ChatMessage("",false,assistantId!!)
-                            val answer=client.stream(payload,model.takeIf{it.isNotBlank()}){delta->streamed+=delta;messages=messages.map{if(it.id==assistantId)it.copy(text=streamed)else it}}
+                            val answer=client.stream(payload,model.takeIf{it.isNotBlank()}){delta->streamed+=delta;scope.launch(Dispatchers.Main.immediate){messages=messages.map{if(it.id==assistantId)it.copy(text=streamed)else it}}}
                             if(streamed.isBlank())streamed=answer
                             messages=messages.map{if(it.id==assistantId)it.copy(text=streamed)else it};assistantId?.let { store.updateMessage(it,streamed,"complete") }
                             store.touchConversation(cid,model)

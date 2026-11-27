@@ -95,7 +95,16 @@ class WorkspaceStore(context: Context) : SQLiteOpenHelper(context, "ai_workspace
         } finally { db.endTransaction() }
     }
 
-    fun removeMessage(id: String) {\n        val db=writableDatabase\n        db.beginTransaction()\n        try {\n            val conversationId=db.rawQuery("SELECT conversation_id FROM messages WHERE id=?",arrayOf(id)).use { if(it.moveToFirst()) it.getString(0) else null }\n            db.delete("messages","id=?",arrayOf(id))\n            if(conversationId!=null) db.execSQL("UPDATE conversations SET updated_at=? WHERE id=?",arrayOf(System.currentTimeMillis(),conversationId))\n            db.setTransactionSuccessful()\n        } finally { db.endTransaction() }\n    }
+    fun removeMessage(id: String) {
+        val db=writableDatabase
+        db.beginTransaction()
+        try {
+            val conversationId=db.rawQuery("SELECT conversation_id FROM messages WHERE id=?",arrayOf(id)).use { if(it.moveToFirst()) it.getString(0) else null }
+            db.delete("messages","id=?",arrayOf(id))
+            if(conversationId!=null) db.execSQL("UPDATE conversations SET updated_at=? WHERE id=?",arrayOf(System.currentTimeMillis(),conversationId))
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+    }
     fun updateMessageStatus(id: String,status:String) { writableDatabase.execSQL("UPDATE messages SET status=? WHERE id=?",arrayOf(status,id)) }
     fun addProject(name: String, instructions: String = ""): String {
         val id=UUID.randomUUID().toString(); val now=System.currentTimeMillis()
