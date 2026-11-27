@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import com.personal.ai.network.GatewayClient
+import com.personal.ai.network.StreamingGatewayClient
 import com.personal.ai.data.ChatStore
 import com.personal.ai.data.StoredMessage
 
@@ -60,7 +61,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: ChatStore, saveC
     var error by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    var activeCall by remember { mutableStateOf<GatewayClient?>(null) }
+    var activeCall by remember { mutableStateOf<StreamingGatewayClient?>(null) }
 
     MaterialTheme(colorScheme = darkColorScheme(background = Black, surface = Panel, primary = Gold, onPrimary = Black)) {
         Column(Modifier.fillMaxSize().background(Black)) {
@@ -84,7 +85,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: ChatStore, saveC
                 confirmButton = { TextButton(onClick = { saveConfig(endpoint.trim(), token.trim()); settingsOpen = false }) { Text("Save") } }, dismissButton = { TextButton(onClick = { settingsOpen = false }) { Text("Cancel") } })
             if (messages.isEmpty()) Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("AI", color = Gold, fontSize = 42.sp, fontWeight = FontWeight.Bold); Text("What can I help you with?", color = White, fontSize = 20.sp); Text("Personal AI workspace", color = Color.Gray, modifier = Modifier.padding(top = 8.dp)) } }
             else LazyColumn(state = listState, modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp), contentPadding = PaddingValues(vertical = 12.dp)) { items(messages) { msg -> Row(Modifier.fillMaxWidth(), horizontalArrangement = if (msg.isUser) Arrangement.End else Arrangement.Start) { Surface(color = if (msg.isUser) Color(0xFF29251B) else Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.padding(vertical = 5.dp).widthIn(max = 340.dp)) { Text(msg.text, color = White, modifier = Modifier.padding(12.dp)) } } } }
-            if (busy) Text("Generating…", color = Gold, modifier = Modifier.padding(horizontal = 16.dp))
+            if (busy) Row(Modifier.fillMaxWidth().padding(horizontal=16.dp), verticalAlignment=Alignment.CenterVertically) { Text("Generating…", color=Gold); Spacer(Modifier.weight(1f)); TextButton(onClick={ activeCall?.cancelActive() }) { Text("Stop",color=Gold) } }
             if (error.isNotBlank()) Text(error, color = Color(0xFFFF8A80), modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
             Row(Modifier.fillMaxWidth().padding(12.dp).background(Panel, RoundedCornerShape(24.dp)).padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextField(value = input, onValueChange = { input = it }, modifier = Modifier.weight(1f), placeholder = { Text("Message AI…", color = Color.Gray) }, colors = TextFieldDefaults.colors(focusedTextColor = White, unfocusedTextColor = White, focusedContainerColor = Panel, unfocusedContainerColor = Panel, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent))
@@ -93,9 +94,11 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: ChatStore, saveC
                     scope.launch {
                         try {
                             val payload = JSONArray(); messages.forEach { payload.put(JSONObject().put("role", if (it.isUser) "user" else "assistant").put("content", it.text)) }
-                            val client = GatewayClient(endpoint, token); activeCall = client
-                            val answer = client.complete(payload, model.takeIf { it.isNotBlank() })
-                            messages = messages + ChatMessage(answer, false); store.save(answer, false)
+                            val client = StreamingGatewayClient(endpoint, token); activeCall = client
+                            var streamed = ""
+                            val answer = client.stream(payload, model.takeIf { it.isNotBlank() }) { delta -> streamed += delta; messages = messages + ChatMessage(streamed, false) }
+                            if (streamed.isBlank()) messages = messages + ChatMessage(answer, false)
+                            store.save(answer, false)
                         } catch (e: Exception) { error = e.message ?: "Request failed"; messages = messages + ChatMessage("I couldn't complete that request. Please check your connection and gateway configuration, then retry.", false) }
                         finally { busy = false; activeCall = null }
                     }
