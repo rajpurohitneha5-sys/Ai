@@ -19,7 +19,7 @@ class WorkspaceStore(context: Context) : SQLiteOpenHelper(context, "ai_workspace
         val id = UUID.randomUUID().toString(); val now = System.currentTimeMillis()
         writableDatabase.execSQL("INSERT INTO conversations(id,title,created_at,updated_at,model) VALUES(?,?,?,?,?)", arrayOf(id,title,now,now,model)); return id
     }
-    fun addMessage(conversationId: String, role: String, content: String, status: String = "complete") {
+    fun addMessage(conversationId: String, role: String, content: String, status: String = "complete"): String {
         require(role in listOf("user","assistant","system","tool"))
         val now=System.currentTimeMillis(); writableDatabase.execSQL("INSERT INTO messages(id,conversation_id,role,content,created_at,status) VALUES(?,?,?,?,?,?)", arrayOf(UUID.randomUUID().toString(),conversationId,role,content,now,status))
         writableDatabase.execSQL("UPDATE conversations SET updated_at=? WHERE id=?", arrayOf(now,conversationId))
