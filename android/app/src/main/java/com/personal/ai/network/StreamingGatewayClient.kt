@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.*
 import org.json.JSONObject
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
@@ -17,10 +18,14 @@ class StreamingGatewayClient(private val endpoint: String, private val token: St
     @Volatile private var active: Call? = null
 
     suspend fun stream(messages: org.json.JSONArray, model: String?, onDelta: (String) -> Unit): String = withContext(Dispatchers.IO) {
-        require(endpoint.isNotBlank()) { "Gateway URL is not configured." }
+        val normalized = endpoint.trim().trimEnd("/")
+        val parsed = normalized.toHttpUrlOrNull() ?: throw IllegalArgumentException("Gateway URL is invalid.")
+        require(parsed.scheme == "https" && parsed.host.isNotBlank()) { "Gateway URL must use HTTPS." }
+        require(parsed.username.isEmpty() && parsed.password.isEmpty()) { "Do not include credentials in the gateway URL." }
+        require(token.isNotBlank()) { "Gateway token is not configured." }
         val payload = JSONObject().put("messages", messages).put("stream", true)
         if (!model.isNullOrBlank()) payload.put("model", model)
-        val request = Request.Builder().url(endpoint.trimEnd('/') + "/v1/chat/completions")
+        val request = Request.Builder().url(normalized + "/v1/chat/completions")
             .header("Authorization", "Bearer $token")
             .post(payload.toString().toRequestBody("application/json".toMediaType())).build()
         val call = client.newCall(request); active = call
