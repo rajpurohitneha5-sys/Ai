@@ -20,6 +20,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -191,7 +195,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                     items(messages, key = { it.id }) { msg ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = if (msg.isUser) Arrangement.End else Arrangement.Start) {
                             Surface(color = if (msg.isUser) Color(0xFF29251B) else Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.padding(vertical = 5.dp).widthIn(max = 340.dp)) {
-                                Text(msg.text, color = White, modifier = Modifier.padding(12.dp))
+                                MarkdownText(msg.text, modifier = Modifier.padding(12.dp))
                             }
                         }
                     }
@@ -248,4 +252,22 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
             Text("Personal AI · gateway-connected chat foundation", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 6.dp))
         }
     }
+}
+
+@Composable
+private fun MarkdownText(text: String, modifier: Modifier = Modifier) {
+    val annotated = buildAnnotatedString {
+        val pattern = Regex("\\*\\*(.+?)\\*\\*|\\x60(.+?)\\x60")
+        var cursor = 0
+        pattern.findAll(text).forEach { match ->
+            append(text.substring(cursor, match.range.first))
+            val bold = match.groups[1]?.value
+            val code = match.groups[2]?.value
+            if (bold != null) withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(bold) }
+            else if (code != null) withStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = Gold)) { append(code) }
+            cursor = match.range.last + 1
+        }
+        append(text.substring(cursor))
+    }
+    Text(annotated, color = White, modifier = modifier)
 }
