@@ -96,7 +96,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: ChatStore, saveC
                             val payload = JSONArray(); messages.forEach { payload.put(JSONObject().put("role", if (it.isUser) "user" else "assistant").put("content", it.text)) }
                             val client = StreamingGatewayClient(endpoint, token); activeCall = client
                             var streamed = ""
-                            val answer = client.stream(payload, model.takeIf { it.isNotBlank() }) { delta -> streamed += delta; messages = messages + ChatMessage(streamed, false) }
+                            val answer = client.stream(payload, model.takeIf { it.isNotBlank() }) { delta -> streamed += delta; messages = if (messages.lastOrNull()?.isUser == false) messages.dropLast(1) + ChatMessage(streamed, false) else messages + ChatMessage(streamed, false) }
                             if (streamed.isBlank()) messages = messages + ChatMessage(answer, false)
                             store.save(answer, false)
                         } catch (e: Exception) { error = e.message ?: "Request failed"; messages = messages + ChatMessage("I couldn't complete that request. Please check your connection and gateway configuration, then retry.", false) }
