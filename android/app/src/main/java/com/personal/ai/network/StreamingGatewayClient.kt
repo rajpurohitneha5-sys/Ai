@@ -34,7 +34,7 @@ class StreamingGatewayClient(private val endpoint: String, private val token: St
                     if (eventData.isEmpty()) return
                     val data = eventData.toString().trim()
                     eventData = StringBuilder()
-                    if (data == "[DONE]") return
+                    if (data == "[DONE]") { streamDone = true; return }
                     try {
                         val choice = JSONObject(data).optJSONArray("choices")?.optJSONObject(0) ?: return
                         val deltaObj = choice.optJSONObject("delta") ?: choice.optJSONObject("message") ?: return
@@ -51,7 +51,7 @@ class StreamingGatewayClient(private val endpoint: String, private val token: St
                 }
                 while (!source.exhausted()) {
                     val line = source.readUtf8Line() ?: break
-                    if (line.isEmpty()) { processEvent(); continue }
+                    if (line.isEmpty()) { processEvent(); if (streamDone) break; continue }
                     if (line.startsWith("data:")) {
                         if (eventData.isNotEmpty()) eventData.append('\n')
                         eventData.append(line.removePrefix("data:").trimStart())
