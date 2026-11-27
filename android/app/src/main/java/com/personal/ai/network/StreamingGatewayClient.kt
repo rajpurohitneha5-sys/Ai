@@ -69,7 +69,9 @@ class StreamingGatewayClient(private val endpoint: String, private val token: St
                 processEvent()
             }
         } finally { active = null }
-        accumulated.toString()
+        val finalText = accumulated.toString()
+        if (finalText.isBlank()) throw IOException("The gateway returned an empty response. Please retry.")
+        finalText
     }
     fun cancelActive() { active?.cancel() }
 }
