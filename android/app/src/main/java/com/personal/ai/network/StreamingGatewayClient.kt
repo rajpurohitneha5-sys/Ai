@@ -25,6 +25,7 @@ class StreamingGatewayClient(private val endpoint: String, private val token: St
             .post(payload.toString().toRequestBody("application/json".toMediaType())).build()
         val call = client.newCall(request); active = call
         val accumulated = StringBuilder()
+        var streamDone = false
         try {
             call.execute().use { response ->
                 if (!response.isSuccessful) throw IOException("Gateway HTTP ${response.code}: ${response.body?.string().orEmpty().take(2000)}")

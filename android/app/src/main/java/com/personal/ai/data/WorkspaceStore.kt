@@ -21,8 +21,10 @@ class WorkspaceStore(context: Context) : SQLiteOpenHelper(context, "ai_workspace
     }
     fun addMessage(conversationId: String, role: String, content: String, status: String = "complete"): String {
         require(role in listOf("user","assistant","system","tool"))
-        val now=System.currentTimeMillis(); writableDatabase.execSQL("INSERT INTO messages(id,conversation_id,role,content,created_at,status) VALUES(?,?,?,?,?,?)", arrayOf(UUID.randomUUID().toString(),conversationId,role,content,now,status))
+        val id=UUID.randomUUID().toString(); val now=System.currentTimeMillis()
+        writableDatabase.execSQL("INSERT INTO messages(id,conversation_id,role,content,created_at,status) VALUES(?,?,?,?,?,?)", arrayOf(id,conversationId,role,content,now,status))
         writableDatabase.execSQL("UPDATE conversations SET updated_at=? WHERE id=?", arrayOf(now,conversationId))
+        return id
     }
     fun updateMessage(id: String, content: String, status: String) { writableDatabase.execSQL("UPDATE messages SET content=?,status=? WHERE id=?", arrayOf(content,status,id)) }
     fun renameConversation(id: String, title: String) { writableDatabase.execSQL("UPDATE conversations SET title=?,updated_at=? WHERE id=?", arrayOf(title,System.currentTimeMillis(),id)) }
