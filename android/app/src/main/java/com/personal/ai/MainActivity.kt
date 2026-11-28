@@ -146,7 +146,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
     var modelList by remember { mutableStateOf<List<String>>(emptyList()) }
     var modelMenu by remember { mutableStateOf(false) }
     var settingsOpen by remember { mutableStateOf(false) }
-    var projectsOpen by remember { mutableStateOf(false) }
+    var projectsOpen by remember { mutableStateOf(false) }\n    var memoryOpen by remember { mutableStateOf(false) }\n    var memories by remember { mutableStateOf(store.memories()) }\n    var memoryDraft by remember { mutableStateOf("") }
     var projects by remember { mutableStateOf(store.projects()) }
     var selectedProjectId by remember { mutableStateOf<String?>(null) }
     var projectName by remember { mutableStateOf("") }
@@ -182,7 +182,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("AI", color = Gold, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 IconButton(onClick = { historyOpen = true }) { Icon(Icons.Default.History, "Chat history", tint = Gold) }
-                IconButton(onClick = { newChat() }, enabled = !busy) { Icon(Icons.Default.Add, "New chat", tint = Gold) }\n                TextButton(onClick = { projects = store.projects(); projectsOpen = true }) { Text("Projects", color = Gold) }
+                IconButton(onClick = { newChat() }, enabled = !busy) { Icon(Icons.Default.Add, "New chat", tint = Gold) }\n                TextButton(onClick = { projects = store.projects(); projectsOpen = true }) { Text("Projects", color = Gold) }\n                TextButton(onClick = { memories = store.memories(); memoryOpen = true }) { Text("Memory", color = Gold) }
                 Spacer(Modifier.weight(1f))
                 Box {
                     TextButton(onClick = { modelMenu = true }) { Text(if (model.isBlank()) "Choose model" else model, color = Gold) }
@@ -206,7 +206,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                 TextButton(onClick = { settingsOpen = true }) { Text("Settings", color = Gold) }
             }
 
-            if (projectsOpen) AlertDialog(
+            if (memoryOpen) AlertDialog(\n                onDismissRequest = { memoryOpen = false },\n                title = { Text("Personal memory") },\n                text = { Column(Modifier.heightIn(max = 420.dp)) {\n                    Text("Saved notes are included as context in future chats.", color = Color.Gray)\n                    LazyColumn(Modifier.heightIn(max = 230.dp)) { items(memories, key = { it.id }) { item ->\n                        Row(verticalAlignment = Alignment.CenterVertically) {\n                            Text(item.content, color = White, modifier = Modifier.weight(1f))\n                            TextButton(onClick = { store.deleteMemory(item.id); memories = store.memories() }) { Text("Delete", color = Color.Red) }\n                        }\n                    } }\n                    OutlinedTextField(memoryDraft, { memoryDraft = it }, label = { Text("Add a memory") }, modifier = Modifier.fillMaxWidth(), minLines = 2)\n                } },\n                confirmButton = { TextButton(onClick = { if (memoryDraft.trim().isNotEmpty()) { store.saveMemory(null, memoryDraft.trim()); memoryDraft = ""; memories = store.memories() }; memoryOpen = false }) { Text("Save") } },\n                dismissButton = { TextButton(onClick = { memoryOpen = false }) { Text("Close") } }\n            )\n\n            if (projectsOpen) AlertDialog(
                 onDismissRequest = { projectsOpen = false },
                 title = { Text("Projects") },
                 text = { Column(Modifier.heightIn(max = 440.dp)) {
