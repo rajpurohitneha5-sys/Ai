@@ -380,8 +380,8 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                             val payload = JSONArray()
                             val systemParts = mutableListOf<String>()
                             selectedProjectId?.let { pid -> projects.firstOrNull { it.id == pid }?.instructions?.takeIf { it.isNotBlank() }?.let { systemParts.add("Project instructions: " + it) } }
-                            memories.filter { it.enabled }.takeIf { it.isNotEmpty() }?.let { list -> systemParts.add("Personal memory:\\n" + list.joinToString("\\n") { "- " + it.content }) }
-                            if (systemParts.isNotEmpty()) payload.put(JSONObject().put("role", "system").put("content", systemParts.joinToString("\\n\\n")))
+                            memories.filter { it.enabled }.takeIf { it.isNotEmpty() }?.let { list -> systemParts.add("Personal memory:\n" + list.joinToString("\n") { "- " + it.content }) }
+                            if (systemParts.isNotEmpty()) payload.put(JSONObject().put("role", "system").put("content", systemParts.joinToString("\n\n")))
                             store.messages(cid).filter { it.status != "streaming" }.forEach { payload.put(JSONObject().put("role", it.role).put("content", it.content)) }
                             val client = StreamingGatewayClient(endpoint, token)
                             activeCall = client
