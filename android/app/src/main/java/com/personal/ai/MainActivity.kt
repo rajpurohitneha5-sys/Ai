@@ -1,7 +1,8 @@
 package com.personal.ai
 
 import android.os.Bundle
-import android.content.Intent\nimport android.speech.RecognizerIntent
+import android.content.Intent
+import android.speech.RecognizerIntent
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
