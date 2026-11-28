@@ -173,7 +173,6 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
     var projects by remember { mutableStateOf(store.projects()) }
     var selectedProjectId by remember { mutableStateOf<String?>(null) }
     var projectName by remember { mutableStateOf("") }
-    var projectEditId by remember { mutableStateOf<String?>(null) }
     var projectInstructions by remember { mutableStateOf("") }
     var historyOpen by remember { mutableStateOf(false) }
     var historySearch by remember { mutableStateOf("") }
@@ -240,7 +239,6 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                     LazyColumn(Modifier.heightIn(max = 230.dp)) { items(memories, key = { it.id }) { item ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(item.content, color = White, modifier = Modifier.weight(1f))
-                            Switch(checked = item.enabled, onCheckedChange = { store.setMemoryEnabled(item.id, it); memories = store.memories() })
                             TextButton(onClick = { store.deleteMemory(item.id); memories = store.memories() }) { Text("Delete", color = Color.Red) }
                         }
                     } }
@@ -258,19 +256,19 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                     LazyColumn(Modifier.heightIn(max = 180.dp)) { items(projects, key = { it.id }) { p ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             TextButton(onClick = { selectedProjectId = p.id }) { Text((if (selectedProjectId == p.id) "✓ " else "") + p.name, color = Gold) }
-                            TextButton(onClick = { projectEditId = p.id; projectName = p.name; projectInstructions = p.instructions }) { Text("Edit", color = White) }
+                            TextButton(onClick = { projectName = p.name; projectInstructions = p.instructions }) { Text("Edit", color = White) }
                         }
                     } }
                     OutlinedTextField(projectName, { projectName = it }, label = { Text("Project name") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(projectInstructions, { projectInstructions = it }, label = { Text("Project instructions") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-                    TextButton(onClick = { projectEditId = null; projectName = ""; projectInstructions = ""; selectedProjectId = null }) { Text("New project", color = Gold) }
+                    TextButton(onClick = { projectName = ""; projectInstructions = ""; selectedProjectId = null }) { Text("New project", color = Gold) }
                 } },
                 confirmButton = { TextButton(onClick = {
                     if (projectName.trim().isNotEmpty()) {
-                        val editingId = projectEditId
-                        if (editingId == null) selectedProjectId = store.addProject(projectName.trim(), projectInstructions.trim())
-                        else { store.updateProject(editingId, projectName.trim(), projectInstructions.trim()); selectedProjectId = editingId }
-                        projects = store.projects(); projectEditId = null; projectName = ""; projectInstructions = ""
+                        val match = projects.firstOrNull { it.name == projectName.trim() }
+                        if (match == null) selectedProjectId = store.addProject(projectName.trim(), projectInstructions.trim())
+                        else { store.updateProject(match.id, projectName.trim(), projectInstructions.trim()); selectedProjectId = match.id }
+                        projects = store.projects(); projectName = ""; projectInstructions = ""
                     }
                     projectsOpen = false
                 }) { Text("Save / Use") } },

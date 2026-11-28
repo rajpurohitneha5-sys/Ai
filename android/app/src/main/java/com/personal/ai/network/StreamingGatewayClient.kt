@@ -80,7 +80,9 @@ class StreamingGatewayClient(private val endpoint: String, private val token: St
                         accumulated.append(delta)
                         onDelta(delta)
                     }
-                    if (choice.optString("finish_reason") == "stop") streamDone = true
+                    val finishReason = choice.optString("finish_reason")
+                    if (finishReason.isNotBlank() && finishReason != "null") streamDone = true
+                    if (finishReason == "tool_calls" && accumulated.isEmpty()) throw IOException("The model requested a tool action, but this app version cannot execute gateway tool calls yet.")
                 }
 
                 while (!source.exhausted() && !streamDone) {
