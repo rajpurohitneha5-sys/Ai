@@ -2,6 +2,7 @@ package com.personal.ai
 
 import android.os.Bundle
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -94,7 +95,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
         val loaded = mutableListOf<Pair<String, String>>()
         uris.forEach { uri ->
             try {
-                val name = uri.lastPathSegment?.substringAfterLast('/') ?: "Attachment"
+                val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "Attachment"
                 val content = context.contentResolver.openInputStream(uri)?.use { stream ->
                     val output = java.io.ByteArrayOutputStream()
                     val buffer = ByteArray(8192)
