@@ -41,6 +41,25 @@ class WorkspaceStore(context: Context) : SQLiteOpenHelper(context, "ai_workspace
         return id
     }
 
+
+    /** Recover incomplete assistant streams left behind by process death or force-close. */
+    fun recoverInterruptedMessages(): Int {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            val cursor = db.rawQuery("SELECT id, content FROM messages WHERE role='assistant' AND status='streaming'", null)
+            val pending = mutableListOf<Pair<String, String>>()
+            cursor.use { while (it.moveToNext()) pending.add(it.getString(0) to it.getString(1)) }
+            val now = System.currentTimeMillis()
+            pending.forEach { (id, content) ->
+                val recovered = content.ifBlank { "Generation was interrupted. Please send your message again." }
+                db.execSQL("UPDATE messages SET content=?, status='interrupted' WHERE id=?", arrayOf(recovered, id))
+            }
+            db.setTransactionSuccessful()
+            return pending.size
+        } finally { db.endTransaction() }
+    }
+
     fun updateMessage(id: String, content: String, status: String) { writableDatabase.execSQL("UPDATE messages SET content=?,status=? WHERE id=?", arrayOf(content,status,id)) }
     fun renameConversation(id: String, title: String) { writableDatabase.execSQL("UPDATE conversations SET title=?,updated_at=? WHERE id=?", arrayOf(title,System.currentTimeMillis(),id)) }
     fun setPinned(id: String, value: Boolean) { writableDatabase.execSQL("UPDATE conversations SET pinned=?,updated_at=? WHERE id=?", arrayOf(if(value)1 else 0,System.currentTimeMillis(),id)) }
