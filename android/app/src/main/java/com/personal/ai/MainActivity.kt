@@ -146,7 +146,9 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
     var modelList by remember { mutableStateOf<List<String>>(emptyList()) }
     var modelMenu by remember { mutableStateOf(false) }
     var settingsOpen by remember { mutableStateOf(false) }
-    var projectsOpen by remember { mutableStateOf(false) }\n    var memoryOpen by remember { mutableStateOf(false) }\n    var memories by remember { mutableStateOf(store.memories()) }\n    var memoryDraft by remember { mutableStateOf("") }
+    var projectsOpen by remember { mutableStateOf(false) }\n    var memoryOpen by remember { mutableStateOf(false) }
+    var memories by remember { mutableStateOf(store.memories()) }
+    var memoryDraft by remember { mutableStateOf("") }
     var projects by remember { mutableStateOf(store.projects()) }
     var selectedProjectId by remember { mutableStateOf<String?>(null) }
     var projectName by remember { mutableStateOf("") }
@@ -206,7 +208,24 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                 TextButton(onClick = { settingsOpen = true }) { Text("Settings", color = Gold) }
             }
 
-            if (memoryOpen) AlertDialog(\n                onDismissRequest = { memoryOpen = false },\n                title = { Text("Personal memory") },\n                text = { Column(Modifier.heightIn(max = 420.dp)) {\n                    Text("Saved notes are included as context in future chats.", color = Color.Gray)\n                    LazyColumn(Modifier.heightIn(max = 230.dp)) { items(memories, key = { it.id }) { item ->\n                        Row(verticalAlignment = Alignment.CenterVertically) {\n                            Text(item.content, color = White, modifier = Modifier.weight(1f))\n                            TextButton(onClick = { store.deleteMemory(item.id); memories = store.memories() }) { Text("Delete", color = Color.Red) }\n                        }\n                    } }\n                    OutlinedTextField(memoryDraft, { memoryDraft = it }, label = { Text("Add a memory") }, modifier = Modifier.fillMaxWidth(), minLines = 2)\n                } },\n                confirmButton = { TextButton(onClick = { if (memoryDraft.trim().isNotEmpty()) { store.saveMemory(null, memoryDraft.trim()); memoryDraft = ""; memories = store.memories() }; memoryOpen = false }) { Text("Save") } },\n                dismissButton = { TextButton(onClick = { memoryOpen = false }) { Text("Close") } }\n            )\n\n            if (projectsOpen) AlertDialog(
+            if (memoryOpen) AlertDialog(
+                onDismissRequest = { memoryOpen = false },
+                title = { Text("Personal memory") },
+                text = { Column(Modifier.heightIn(max = 420.dp)) {
+                    Text("Saved notes are included as context in future chats.", color = Color.Gray)
+                    LazyColumn(Modifier.heightIn(max = 230.dp)) { items(memories, key = { it.id }) { item ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(item.content, color = White, modifier = Modifier.weight(1f))
+                            TextButton(onClick = { store.deleteMemory(item.id); memories = store.memories() }) { Text("Delete", color = Color.Red) }
+                        }
+                    } }
+                    OutlinedTextField(memoryDraft, { memoryDraft = it }, label = { Text("Add a memory") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                } },
+                confirmButton = { TextButton(onClick = { if (memoryDraft.trim().isNotEmpty()) { store.saveMemory(null, memoryDraft.trim()); memoryDraft = ""; memories = store.memories() }; memoryOpen = false }) { Text("Save") } },
+                dismissButton = { TextButton(onClick = { memoryOpen = false }) { Text("Close") } }
+            )
+
+            if (projectsOpen) AlertDialog(
                 onDismissRequest = { projectsOpen = false },
                 title = { Text("Projects") },
                 text = { Column(Modifier.heightIn(max = 440.dp)) {
@@ -356,6 +375,10 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                         var streamed = ""
                         try {
                             val payload = JSONArray()
+                            val systemParts = mutableListOf<String>()
+                            selectedProjectId?.let { pid -> projects.firstOrNull { it.id == pid }?.instructions?.takeIf { it.isNotBlank() }?.let { systemParts.add("Project instructions: " + it) } }
+                            memories.filter { it.enabled }.takeIf { it.isNotEmpty() }?.let { list -> systemParts.add("Personal memory:\\n" + list.joinToString("\\n") { "- " + it.content }) }
+                            if (systemParts.isNotEmpty()) payload.put(JSONObject().put("role", "system").put("content", systemParts.joinToString("\\n\\n")))
                             store.messages(cid).filter { it.status != "streaming" }.forEach { payload.put(JSONObject().put("role", it.role).put("content", it.content)) }
                             val client = StreamingGatewayClient(endpoint, token)
                             activeCall = client
