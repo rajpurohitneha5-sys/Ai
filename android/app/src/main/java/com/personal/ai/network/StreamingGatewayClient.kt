@@ -16,6 +16,7 @@ class StreamingGatewayClient(private val endpoint: String, private val token: St
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(150, TimeUnit.SECONDS)
         .build()
 
     @Volatile private var active: Call? = null

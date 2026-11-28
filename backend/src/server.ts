@@ -70,8 +70,8 @@ app.post('/v1/chat/completions', protectedRoute, async (req, res) => {
       signal: controller.signal
     });
     if (!upstream.ok) {
-      clearInactivityTimer();
-      await upstream.text(); // Consume the body without exposing provider diagnostics or secrets to the client.
+      // Keep the deadline active while consuming the provider's error body.
+      try { await upstream.text(); } finally { clearInactivityTimer(); }
       if (!clientDisconnected) return res.status(upstream.status).json({ error: 'Provider request was rejected or failed.' });
       return;
     }

@@ -185,10 +185,12 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     var activeCall by remember { mutableStateOf<StreamingGatewayClient?>(null) }
+    var generatingConversationId by remember { mutableStateOf<String?>(null) }
     val chatListState = rememberLazyListState()
 
     fun loadChat(id: String?) {
         selectedId = id
+        error = ""
         val chat = id?.let { key -> store.listConversations().firstOrNull { it.id == key } }
         if (chat != null && chat.model.isNotBlank()) model = chat.model
         messages = id?.let { key -> store.messages(key).map { m -> ChatMessage(m.content, m.role == "user", m.id) } } ?: emptyList()
@@ -300,8 +302,8 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                                     TextButton(onClick = { loadChat(chat.id); historyOpen = false }) { Text((if (chat.pinned) "★ " else "") + chat.title, color = White) }
                                     TextButton(onClick = { renameId = chat.id; renameTitle = chat.title }) { Text("Rename", color = Gold) }
                                     TextButton(onClick = { store.setPinned(chat.id, !chat.pinned); historyRevision++ }) { Text(if (chat.pinned) "Unpin" else "Pin", color = Gold) }
-                                    TextButton(onClick = { store.setArchived(chat.id, !chat.archived); historyRevision++; if (selectedId == chat.id) loadChat(null) }) { Text(if (chat.archived) "Unarchive" else "Archive", color = Gold) }
-                                    TextButton(onClick = { store.deleteConversation(chat.id); historyRevision++; if (selectedId == chat.id) loadChat(null) }) { Text("Delete", color = Color.Red) }
+                                    TextButton(enabled = generatingConversationId != chat.id, onClick = { store.setArchived(chat.id, !chat.archived); historyRevision++; if (selectedId == chat.id) loadChat(null) }) { Text(if (chat.archived) "Unarchive" else "Archive", color = Gold) }
+                                    TextButton(enabled = generatingConversationId != chat.id, onClick = { store.deleteConversation(chat.id); historyRevision++; if (selectedId == chat.id) loadChat(null) }) { Text("Delete", color = Color.Red) }
                                 }
                             }
                         }
@@ -393,6 +395,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                     val userMessageId = store.addMessage(cid, "user", prompt)
                     messages = messages + ChatMessage(prompt, true, userMessageId)
                     busy = true
+                    generatingConversationId = cid
                     scope.launch {
                         var assistantId: String? = null
                         var streamed = ""
@@ -414,26 +417,27 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                                 if (streamed.length - lastUiLength >= 32 || delta.contains("\n")) {
                                     lastUiLength = streamed.length
                                     scope.launch(Dispatchers.Main.immediate) {
-                                        messages = messages.map { msg -> if (msg.id == assistantId) msg.copy(text = streamed) else msg }
+                                        if (selectedId == cid) messages = messages.map { msg -> if (msg.id == assistantId) msg.copy(text = streamed) else msg }
                                     }
                                 }
                             }
                             if (streamed.isBlank()) streamed = answer
-                            messages = messages.map { msg -> if (msg.id == assistantId) msg.copy(text = streamed) else msg }
+                            if (selectedId == cid) messages = messages.map { msg -> if (msg.id == assistantId) msg.copy(text = streamed) else msg }
                             assistantId?.let { store.updateMessage(it, streamed, "complete") }
                             store.touchConversation(cid, model)
                         } catch (e: Exception) {
-                            error = e.message ?: "Request failed"
+                            if (selectedId == cid) error = e.message ?: "Request failed"
                             if (assistantId != null) {
                                 val savedText = streamed.ifBlank { "Generation stopped or failed. Please retry." }
-                                messages = messages.map { msg -> if (msg.id == assistantId) msg.copy(text = savedText) else msg }
+                                if (selectedId == cid) messages = messages.map { msg -> if (msg.id == assistantId) msg.copy(text = savedText) else msg }
                                 assistantId?.let { store.updateMessage(it, savedText, "interrupted") }
                             } else {
-                                messages = messages + ChatMessage("I couldn't complete that request. Check your connection and gateway configuration, then retry.", false, java.util.UUID.randomUUID().toString())
+                                if (selectedId == cid) messages = messages + ChatMessage("I couldn't complete that request. Check your connection and gateway configuration, then retry.", false, java.util.UUID.randomUUID().toString())
                             }
                         } finally {
                             busy = false
                             activeCall = null
+                            generatingConversationId = null
                             // Do not force the UI back to the conversation that finished if the user switched chats.
                             if (selectedId == cid) loadChat(cid)
                         }
