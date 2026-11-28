@@ -432,7 +432,10 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                                 messages = messages + ChatMessage("I couldn't complete that request. Check your connection and gateway configuration, then retry.", false, java.util.UUID.randomUUID().toString())
                             }
                         } finally {
-                            busy = false; activeCall = null; loadChat(cid)
+                            busy = false
+                            activeCall = null
+                            // Do not force the UI back to the conversation that finished if the user switched chats.
+                            if (selectedId == cid) loadChat(cid)
                         }
                     }
                 }) { Icon(Icons.Default.Send, "Send", tint = Gold) }
