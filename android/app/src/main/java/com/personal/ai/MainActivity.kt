@@ -93,7 +93,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
     var attachments by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }\n
     val filePicker = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         val loaded = mutableListOf<Pair<String, String>>()
-        uris.forEach { uri ->
+        uris.take(5 - attachments.size).forEach { uri ->
             try {
                 val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "Attachment"
                 val content = context.contentResolver.openInputStream(uri)?.use { stream ->
