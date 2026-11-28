@@ -265,8 +265,9 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                 IconButton(onClick = { filePicker.launch(arrayOf("text/*", "application/pdf", "application/json", "application/xml", "application/*")) }, enabled = !busy) { Icon(Icons.Default.AttachFile, "Attach files", tint = Gold) }
                 TextField(value = input, onValueChange = { input = it }, modifier = Modifier.weight(1f), placeholder = { Text("Message AI…", color = Color.Gray) }, colors = TextFieldDefaults.colors(focusedTextColor = White, unfocusedTextColor = White, focusedContainerColor = Panel, unfocusedContainerColor = Panel, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent))
                 IconButton(enabled = (input.isNotBlank() || attachments.isNotEmpty()) && !busy, onClick = {
-                    val prompt = input.trim()
-                    input = ""; error = ""
+                    val basePrompt = input.trim()
+                    val prompt = (if (basePrompt.isBlank()) "" else basePrompt + "\n\n") + attachments.joinToString("\n\n") { (name, content) -> "Attached file: $name\n$content" }
+                    input = ""; attachments = emptyList(); error = ""
                     val cid = selectedId ?: store.createConversation("New chat", model).also { selectedId = it; messages = emptyList() }
                     if (store.messages(cid).isEmpty()) store.renameConversation(cid, prompt.take(64).ifBlank { "New chat" })
                     val userMessageId = store.addMessage(cid, "user", prompt)
