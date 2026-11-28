@@ -5,6 +5,7 @@ import android.content.Intent
 import android.speech.RecognizerIntent
 import android.net.Uri
 import android.provider.OpenableColumns
+import java.io.IOException
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -118,9 +119,13 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                                 context.contentResolver.openInputStream(uri)?.use { stream ->
                                     val output = java.io.ByteArrayOutputStream()
                                     val buffer = ByteArray(8192)
+                                    var total = 0
+                                    val maxBytes = 2 * 1024 * 1024
                                     while (true) {
                                         val count = stream.read(buffer)
                                         if (count <= 0) break
+                                        total += count
+                                        if (total > maxBytes) throw IOException("Attachment exceeds the 2 MB text limit.")
                                         output.write(buffer, 0, count)
                                     }
                                     output.toByteArray().toString(Charsets.UTF_8)
