@@ -1,6 +1,8 @@
 package com.personal.ai
 
 import android.os.Bundle
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -12,12 +14,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.Alignment
@@ -84,6 +88,22 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, saveConfig: (String, String) -> Unit) {
     val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    var attachments by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+    val filePicker = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        val loaded = mutableListOf<Pair<String, String>>()
+        uris.forEach { uri ->
+            try {
+                val name = uri.lastPathSegment?.substringAfterLast('/') ?: "Attachment"
+                val content = context.contentResolver.openInputStream(uri)?.use { stream ->
+                    val bytes = stream.readBytes().take(200_000).toByteArray()
+                    bytes.toString(Charsets.UTF_8)
+                } ?: ""
+                loaded.add(name to content)
+            } catch (_: Exception) { loaded.add("Attachment" to "[Unable to read this file]") }
+        }
+        attachments = attachments + loaded
+    }
     var input by remember { mutableStateOf("") }
     var endpoint by remember { mutableStateOf(initialEndpoint) }
     var token by remember { mutableStateOf(initialToken) }
@@ -237,9 +257,14 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                 TextButton(onClick = { activeCall?.cancelActive() }) { Icon(Icons.Default.Stop, "Stop", tint = Gold); Text("Stop", color = Gold) }
             }
             if (error.isNotBlank()) Text(error, color = Color(0xFFFF8A80), modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+            if (attachments.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(attachments.joinToString { it.first }, color = Gold, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                TextButton(onClick = { attachments = emptyList() }) { Text("Clear", color = Color.Gray) }
+            }
             Row(Modifier.fillMaxWidth().padding(12.dp).background(Panel, RoundedCornerShape(24.dp)).padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { filePicker.launch(arrayOf("text/*", "application/pdf", "application/json", "application/xml", "application/*")) }, enabled = !busy) { Icon(Icons.Default.AttachFile, "Attach files", tint = Gold) }
                 TextField(value = input, onValueChange = { input = it }, modifier = Modifier.weight(1f), placeholder = { Text("Message AI…", color = Color.Gray) }, colors = TextFieldDefaults.colors(focusedTextColor = White, unfocusedTextColor = White, focusedContainerColor = Panel, unfocusedContainerColor = Panel, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent))
-                IconButton(enabled = input.isNotBlank() && !busy, onClick = {
+                IconButton(enabled = (input.isNotBlank() || attachments.isNotEmpty()) && !busy, onClick = {
                     val prompt = input.trim()
                     input = ""; error = ""
                     val cid = selectedId ?: store.createConversation("New chat", model).also { selectedId = it; messages = emptyList() }
