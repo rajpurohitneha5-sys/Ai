@@ -37,7 +37,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch\nimport kotlinx.coroutines.delay
+import kotlinx.coroutines.launch\nimport kotlinx.coroutines.delay\nimport kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import com.personal.ai.network.GatewayClient
@@ -90,28 +90,35 @@ class MainActivity : ComponentActivity() {
 fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, saveConfig: (String, String) -> Unit) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var attachments by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }\n    LaunchedEffect(attachments) {\n        if (attachments.isNotEmpty()) {\n            delay(10 * 60 * 1000L)\n            attachments = emptyList()\n        }\n    }\n
+    var attachmentLoading by remember { mutableStateOf(false) }
     val filePicker = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        val loaded = mutableListOf<Pair<String, String>>()
-        uris.forEach { uri ->
-            try {
-                val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "Attachment"
-                val content = context.contentResolver.openInputStream(uri)?.use { stream ->
-                    val output = java.io.ByteArrayOutputStream()
-                    val buffer = ByteArray(8192)
-                    var total = 0
-                    while (total < 200_000) {
-                        val count = stream.read(buffer, 0, minOf(buffer.size, 200_000 - total))
-                        if (count <= 0) break
-                        output.write(buffer, 0, count)
-                        total += count
+        if (uris.isNotEmpty()) {
+            attachmentLoading = true
+            scope.launch {
+                val loaded = withContext(Dispatchers.IO) {
+                    uris.map { uri ->
+                        try {
+                            val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "Attachment"
+                            val content = context.contentResolver.openInputStream(uri)?.use { stream ->
+                                val output = java.io.ByteArrayOutputStream()
+                                val buffer = ByteArray(8192)
+                                while (true) {
+                                    val count = stream.read(buffer)
+                                    if (count <= 0) break
+                                    output.write(buffer, 0, count)
+                                }
+                                output.toByteArray().toString(Charsets.UTF_8)
+                            } ?: ""
+                            name to content
+                        } catch (_: Exception) { "Attachment" to "[Unable to read this file]" }
                     }
-                    output.toByteArray().toString(Charsets.UTF_8) + if (total >= 200_000) "\n[Attachment truncated at 200 KB]" else ""
-                } ?: ""
-                loaded.add(name to content)
-            } catch (_: Exception) { loaded.add("Attachment" to "[Unable to read this file]") }
+                }
+                attachments = attachments + loaded
+                attachmentLoading = false
+            }
         }
-        attachments = attachments + loaded
     }
     var input by remember { mutableStateOf("") }\n    var voiceError by remember { mutableStateOf("") }\n    val speechLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->\n        if (result.resultCode == android.app.Activity.RESULT_OK) {\n            val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()\n            if (!spoken.isNullOrBlank()) input = if (input.isBlank()) spoken else input.trimEnd() + " " + spoken\n        } else if (result.resultCode != android.app.Activity.RESULT_CANCELED) voiceError = "Voice input unavailable"\n    }
     var endpoint by remember { mutableStateOf(initialEndpoint) }
@@ -130,7 +137,6 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
     var messages by remember { mutableStateOf<List<ChatMessage>>(selectedId?.let { id -> store.messages(id).map { ChatMessage(it.content, it.role == "user", it.id) } } ?: emptyList()) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
-    val scope = rememberCoroutineScope()
     var activeCall by remember { mutableStateOf<StreamingGatewayClient?>(null) }
     val chatListState = rememberLazyListState()
 
@@ -266,12 +272,12 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                 TextButton(onClick = { activeCall?.cancelActive() }) { Icon(Icons.Default.Stop, "Stop", tint = Gold); Text("Stop", color = Gold) }
             }
             if (error.isNotBlank()) Text(error, color = Color(0xFFFF8A80), modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))\n            if (voiceError.isNotBlank()) Text(voiceError, color = Color(0xFFFF8A80), modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
-            if (attachments.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (attachmentLoading) Text("Reading attachments…", color = Gold, modifier = Modifier.padding(horizontal = 12.dp))\n            if (attachments.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) { Text(attachments.joinToString { it.first }, color = Gold, fontSize = 12.sp); Text("Attachments auto-clear in 10 minutes", color = Color.Gray, fontSize = 10.sp) }
                 TextButton(onClick = { attachments = emptyList() }) { Text("Clear", color = Color.Gray) }
             }
             Row(Modifier.fillMaxWidth().padding(12.dp).background(Panel, RoundedCornerShape(24.dp)).padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { filePicker.launch(arrayOf("text/*", "application/json", "application/xml")) }, enabled = !busy) { Icon(Icons.Default.AttachFile, "Attach files", tint = Gold) }\n                IconButton(onClick = {\n                    voiceError = ""\n                    try {\n                        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {\n                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)\n                            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your message")\n                        }\n                        speechLauncher.launch(intent)\n                    } catch (_: Exception) { voiceError = "Speech recognition is not available on this device" }\n                }, enabled = !busy) { Icon(Icons.Default.Mic, "Voice input", tint = Gold) }
+                IconButton(onClick = { filePicker.launch(arrayOf("text/*", "application/json", "application/xml")) }, enabled = !busy && !attachmentLoading) { Icon(Icons.Default.AttachFile, "Attach files", tint = Gold) }\n                IconButton(onClick = {\n                    voiceError = ""\n                    try {\n                        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {\n                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)\n                            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your message")\n                        }\n                        speechLauncher.launch(intent)\n                    } catch (_: Exception) { voiceError = "Speech recognition is not available on this device" }\n                }, enabled = !busy) { Icon(Icons.Default.Mic, "Voice input", tint = Gold) }
                 TextField(value = input, onValueChange = { input = it }, modifier = Modifier.weight(1f), placeholder = { Text("Message AI…", color = Color.Gray) }, colors = TextFieldDefaults.colors(focusedTextColor = White, unfocusedTextColor = White, focusedContainerColor = Panel, unfocusedContainerColor = Panel, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent))
                 IconButton(enabled = (input.isNotBlank() || attachments.isNotEmpty()) && !busy, onClick = {
                     val basePrompt = input.trim()
