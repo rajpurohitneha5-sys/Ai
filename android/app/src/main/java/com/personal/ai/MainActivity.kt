@@ -113,16 +113,21 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                     uris.map { uri ->
                         try {
                             val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "Attachment"
-                            val content = context.contentResolver.openInputStream(uri)?.use { stream ->
-                                val output = java.io.ByteArrayOutputStream()
-                                val buffer = ByteArray(8192)
-                                while (true) {
-                                    val count = stream.read(buffer)
-                                    if (count <= 0) break
-                                    output.write(buffer, 0, count)
-                                }
-                                output.toByteArray().toString(Charsets.UTF_8)
-                            } ?: ""
+                            val mime = context.contentResolver.getType(uri)?.lowercase() ?: ""
+                            val content = if (mime.startsWith("text/") || mime in listOf("application/json", "application/xml", "application/csv")) {
+                                context.contentResolver.openInputStream(uri)?.use { stream ->
+                                    val output = java.io.ByteArrayOutputStream()
+                                    val buffer = ByteArray(8192)
+                                    while (true) {
+                                        val count = stream.read(buffer)
+                                        if (count <= 0) break
+                                        output.write(buffer, 0, count)
+                                    }
+                                    output.toByteArray().toString(Charsets.UTF_8)
+                                } ?: "[Unable to read this file]"
+                            } else {
+                                "[File type: $mime. This gateway chat currently supports text-based attachments only; this file is attached by name, but its contents cannot yet be analyzed.]"
+                            }
                             name to content
                         } catch (_: Exception) { "Attachment" to "[Unable to read this file]" }
                     }
@@ -352,7 +357,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                 TextButton(onClick = { attachments = emptyList() }) { Text("Clear", color = Color.Gray) }
             }
             Row(Modifier.fillMaxWidth().padding(12.dp).background(Panel, RoundedCornerShape(24.dp)).padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { filePicker.launch(arrayOf("text/*", "application/json", "application/xml")) }, enabled = !busy && !attachmentLoading) { Icon(Icons.Default.AttachFile, "Attach files", tint = Gold) }
+                IconButton(onClick = { filePicker.launch(arrayOf("*/*")) }, enabled = !busy && !attachmentLoading) { Icon(Icons.Default.AttachFile, "Attach files", tint = Gold) }
                 IconButton(onClick = {
                     voiceError = ""
                     try {
