@@ -96,8 +96,16 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
             try {
                 val name = uri.lastPathSegment?.substringAfterLast('/') ?: "Attachment"
                 val content = context.contentResolver.openInputStream(uri)?.use { stream ->
-                    val bytes = stream.readBytes().take(200_000).toByteArray()
-                    bytes.toString(Charsets.UTF_8)
+                    val output = java.io.ByteArrayOutputStream()
+                    val buffer = ByteArray(8192)
+                    var total = 0
+                    while (total < 200_000) {
+                        val count = stream.read(buffer, 0, minOf(buffer.size, 200_000 - total))
+                        if (count <= 0) break
+                        output.write(buffer, 0, count)
+                        total += count
+                    }
+                    output.toByteArray().toString(Charsets.UTF_8) + if (total >= 200_000) "\n[Attachment truncated at 200 KB]" else ""
                 } ?: ""
                 loaded.add(name to content)
             } catch (_: Exception) { loaded.add("Attachment" to "[Unable to read this file]") }
