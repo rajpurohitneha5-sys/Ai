@@ -145,7 +145,12 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
     var model by remember { mutableStateOf(store.listConversations().firstOrNull { !it.archived }?.model ?: "") }
     var modelList by remember { mutableStateOf<List<String>>(emptyList()) }
     var modelMenu by remember { mutableStateOf(false) }
-    var settingsOpen by remember { mutableStateOf(false) }\n    var projectsOpen by remember { mutableStateOf(false) }\n    var projects by remember { mutableStateOf(store.projects()) }\n    var selectedProjectId by remember { mutableStateOf<String?>(null) }\n    var projectName by remember { mutableStateOf("") }\n    var projectInstructions by remember { mutableStateOf("") }
+    var settingsOpen by remember { mutableStateOf(false) }
+    var projectsOpen by remember { mutableStateOf(false) }
+    var projects by remember { mutableStateOf(store.projects()) }
+    var selectedProjectId by remember { mutableStateOf<String?>(null) }
+    var projectName by remember { mutableStateOf("") }
+    var projectInstructions by remember { mutableStateOf("") }
     var historyOpen by remember { mutableStateOf(false) }
     var historySearch by remember { mutableStateOf("") }
     var historyRevision by remember { mutableIntStateOf(0) }
@@ -201,7 +206,33 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                 TextButton(onClick = { settingsOpen = true }) { Text("Settings", color = Gold) }
             }
 
-            if (projectsOpen) AlertDialog(\n                onDismissRequest = { projectsOpen = false },\n                title = { Text("Projects") },\n                text = { Column(Modifier.heightIn(max = 440.dp)) {\n                    Text("Choose a project to apply its instructions to new messages.", color = Color.Gray)\n                    LazyColumn(Modifier.heightIn(max = 180.dp)) { items(projects, key = { it.id }) { p ->\n                        Row(verticalAlignment = Alignment.CenterVertically) {\n                            TextButton(onClick = { selectedProjectId = p.id }) { Text((if (selectedProjectId == p.id) "✓ " else "") + p.name, color = Gold) }\n                            TextButton(onClick = { projectName = p.name; projectInstructions = p.instructions }) { Text("Edit", color = White) }\n                        }\n                    } }\n                    OutlinedTextField(projectName, { projectName = it }, label = { Text("Project name") }, modifier = Modifier.fillMaxWidth())\n                    OutlinedTextField(projectInstructions, { projectInstructions = it }, label = { Text("Project instructions") }, modifier = Modifier.fillMaxWidth(), minLines = 3)\n                    TextButton(onClick = { projectName = ""; projectInstructions = ""; selectedProjectId = null }) { Text("New project", color = Gold) }\n                } },\n                confirmButton = { TextButton(onClick = {\n                    if (projectName.trim().isNotEmpty()) {\n                        val match = projects.firstOrNull { it.name == projectName.trim() }\n                        if (match == null) selectedProjectId = store.addProject(projectName.trim(), projectInstructions.trim())\n                        projects = store.projects(); projectName = ""; projectInstructions = ""\n                    }\n                    projectsOpen = false\n                }) { Text("Save / Use") } },\n                dismissButton = { TextButton(onClick = { selectedProjectId = null; projectsOpen = false }) { Text("Clear project") } }\n            )\n\n            if (settingsOpen) AlertDialog(
+            if (projectsOpen) AlertDialog(
+                onDismissRequest = { projectsOpen = false },
+                title = { Text("Projects") },
+                text = { Column(Modifier.heightIn(max = 440.dp)) {
+                    Text("Choose a project to apply its instructions to new messages.", color = Color.Gray)
+                    LazyColumn(Modifier.heightIn(max = 180.dp)) { items(projects, key = { it.id }) { p ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { selectedProjectId = p.id }) { Text((if (selectedProjectId == p.id) "✓ " else "") + p.name, color = Gold) }
+                            TextButton(onClick = { projectName = p.name; projectInstructions = p.instructions }) { Text("Edit", color = White) }
+                        }
+                    } }
+                    OutlinedTextField(projectName, { projectName = it }, label = { Text("Project name") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(projectInstructions, { projectInstructions = it }, label = { Text("Project instructions") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                    TextButton(onClick = { projectName = ""; projectInstructions = ""; selectedProjectId = null }) { Text("New project", color = Gold) }
+                } },
+                confirmButton = { TextButton(onClick = {
+                    if (projectName.trim().isNotEmpty()) {
+                        val match = projects.firstOrNull { it.name == projectName.trim() }
+                        if (match == null) selectedProjectId = store.addProject(projectName.trim(), projectInstructions.trim())
+                        projects = store.projects(); projectName = ""; projectInstructions = ""
+                    }
+                    projectsOpen = false
+                }) { Text("Save / Use") } },
+                dismissButton = { TextButton(onClick = { selectedProjectId = null; projectsOpen = false }) { Text("Clear project") } }
+            )
+
+            if (settingsOpen) AlertDialog(
                 onDismissRequest = { settingsOpen = false },
                 title = { Text("Gateway configuration") },
                 text = { Column {
