@@ -145,7 +145,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
     var model by remember { mutableStateOf(store.listConversations().firstOrNull { !it.archived }?.model ?: "") }
     var modelList by remember { mutableStateOf<List<String>>(emptyList()) }
     var modelMenu by remember { mutableStateOf(false) }
-    var settingsOpen by remember { mutableStateOf(false) }
+    var settingsOpen by remember { mutableStateOf(false) }\n    var projectsOpen by remember { mutableStateOf(false) }\n    var projects by remember { mutableStateOf(store.projects()) }\n    var selectedProjectId by remember { mutableStateOf<String?>(null) }\n    var projectName by remember { mutableStateOf("") }\n    var projectInstructions by remember { mutableStateOf("") }
     var historyOpen by remember { mutableStateOf(false) }
     var historySearch by remember { mutableStateOf("") }
     var historyRevision by remember { mutableIntStateOf(0) }
@@ -177,7 +177,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("AI", color = Gold, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 IconButton(onClick = { historyOpen = true }) { Icon(Icons.Default.History, "Chat history", tint = Gold) }
-                IconButton(onClick = { newChat() }, enabled = !busy) { Icon(Icons.Default.Add, "New chat", tint = Gold) }
+                IconButton(onClick = { newChat() }, enabled = !busy) { Icon(Icons.Default.Add, "New chat", tint = Gold) }\n                TextButton(onClick = { projects = store.projects(); projectsOpen = true }) { Text("Projects", color = Gold) }
                 Spacer(Modifier.weight(1f))
                 Box {
                     TextButton(onClick = { modelMenu = true }) { Text(if (model.isBlank()) "Choose model" else model, color = Gold) }
@@ -201,7 +201,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                 TextButton(onClick = { settingsOpen = true }) { Text("Settings", color = Gold) }
             }
 
-            if (settingsOpen) AlertDialog(
+            if (projectsOpen) AlertDialog(\n                onDismissRequest = { projectsOpen = false },\n                title = { Text("Projects") },\n                text = { Column(Modifier.heightIn(max = 440.dp)) {\n                    Text("Choose a project to apply its instructions to new messages.", color = Color.Gray)\n                    LazyColumn(Modifier.heightIn(max = 180.dp)) { items(projects, key = { it.id }) { p ->\n                        Row(verticalAlignment = Alignment.CenterVertically) {\n                            TextButton(onClick = { selectedProjectId = p.id }) { Text((if (selectedProjectId == p.id) "✓ " else "") + p.name, color = Gold) }\n                            TextButton(onClick = { projectName = p.name; projectInstructions = p.instructions }) { Text("Edit", color = White) }\n                        }\n                    } }\n                    OutlinedTextField(projectName, { projectName = it }, label = { Text("Project name") }, modifier = Modifier.fillMaxWidth())\n                    OutlinedTextField(projectInstructions, { projectInstructions = it }, label = { Text("Project instructions") }, modifier = Modifier.fillMaxWidth(), minLines = 3)\n                    TextButton(onClick = { projectName = ""; projectInstructions = ""; selectedProjectId = null }) { Text("New project", color = Gold) }\n                } },\n                confirmButton = { TextButton(onClick = {\n                    if (projectName.trim().isNotEmpty()) {\n                        val match = projects.firstOrNull { it.name == projectName.trim() }\n                        if (match == null) selectedProjectId = store.addProject(projectName.trim(), projectInstructions.trim())\n                        projects = store.projects(); projectName = ""; projectInstructions = ""\n                    }\n                    projectsOpen = false\n                }) { Text("Save / Use") } },\n                dismissButton = { TextButton(onClick = { selectedProjectId = null; projectsOpen = false }) { Text("Clear project") } }\n            )\n\n            if (settingsOpen) AlertDialog(
                 onDismissRequest = { settingsOpen = false },
                 title = { Text("Gateway configuration") },
                 text = { Column {
