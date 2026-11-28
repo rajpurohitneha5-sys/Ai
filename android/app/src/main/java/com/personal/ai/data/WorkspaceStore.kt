@@ -130,6 +130,10 @@ class WorkspaceStore(context: Context) : SQLiteOpenHelper(context, "ai_workspace
         writableDatabase.execSQL("INSERT INTO projects(id,name,instructions,created_at,updated_at) VALUES(?,?,?,?,?)",arrayOf(id,name,instructions,now,now))
         return id
     }
+    fun updateProject(id: String, name: String, instructions: String) {
+        writableDatabase.execSQL("UPDATE projects SET name=?,instructions=?,updated_at=? WHERE id=?", arrayOf(name,instructions,System.currentTimeMillis(),id))
+    }
+
     fun projects(): List<Project> {
         val out=mutableListOf<Project>()
         readableDatabase.rawQuery("SELECT id,name,instructions,updated_at FROM projects ORDER BY updated_at DESC",null).use { c -> while(c.moveToNext()) out.add(Project(c.getString(0),c.getString(1),c.getString(2),c.getLong(3))) }
