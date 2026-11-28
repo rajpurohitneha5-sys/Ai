@@ -37,7 +37,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.launch\nimport kotlinx.coroutines.delay
 import org.json.JSONArray
 import org.json.JSONObject
 import com.personal.ai.network.GatewayClient
@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
 fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, saveConfig: (String, String) -> Unit) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
-    var attachments by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }\n
+    var attachments by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }\n    LaunchedEffect(attachments) {\n        if (attachments.isNotEmpty()) {\n            delay(10 * 60 * 1000L)\n            attachments = emptyList()\n        }\n    }\n
     val filePicker = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         val loaded = mutableListOf<Pair<String, String>>()
         uris.forEach { uri ->
@@ -267,7 +267,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
             }
             if (error.isNotBlank()) Text(error, color = Color(0xFFFF8A80), modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))\n            if (voiceError.isNotBlank()) Text(voiceError, color = Color(0xFFFF8A80), modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
             if (attachments.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(attachments.joinToString { it.first }, color = Gold, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                Column(Modifier.weight(1f)) { Text(attachments.joinToString { it.first }, color = Gold, fontSize = 12.sp); Text("Attachments auto-clear in 10 minutes", color = Color.Gray, fontSize = 10.sp) }
                 TextButton(onClick = { attachments = emptyList() }) { Text("Clear", color = Color.Gray) }
             }
             Row(Modifier.fillMaxWidth().padding(12.dp).background(Panel, RoundedCornerShape(24.dp)).padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
