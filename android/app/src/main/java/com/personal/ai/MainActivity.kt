@@ -212,6 +212,20 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                                             Icon(Icons.Default.ContentCopy, contentDescription = "Copy message", tint = Color.Gray, modifier = Modifier.size(16.dp))
                                         }
                                     }
+                                    if (!msg.isUser && messages.lastOrNull()?.id == msg.id && !busy) {
+                                        TextButton(onClick = {
+                                            val saved = store.messages(selectedId ?: return@TextButton)
+                                            val assistant = saved.lastOrNull()
+                                            val user = saved.dropLast(1).lastOrNull()
+                                            if (assistant?.role == "assistant" && user?.role == "user") {
+                                                store.removeMessage(assistant.id)
+                                                store.removeMessage(user.id)
+                                                loadChat(selectedId)
+                                                input = user.content
+                                                error = ""
+                                            }
+                                        }) { Text("Retry", color = Gold) }
+                                    }
                                 }
                             }
                         }
