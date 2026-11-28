@@ -262,7 +262,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                 TextButton(onClick = { attachments = emptyList() }) { Text("Clear", color = Color.Gray) }
             }
             Row(Modifier.fillMaxWidth().padding(12.dp).background(Panel, RoundedCornerShape(24.dp)).padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { filePicker.launch(arrayOf("text/*", "application/pdf", "application/json", "application/xml", "application/*")) }, enabled = !busy) { Icon(Icons.Default.AttachFile, "Attach files", tint = Gold) }
+                IconButton(onClick = { filePicker.launch(arrayOf("text/*", "application/json", "application/xml")) }, enabled = !busy) { Icon(Icons.Default.AttachFile, "Attach files", tint = Gold) }
                 TextField(value = input, onValueChange = { input = it }, modifier = Modifier.weight(1f), placeholder = { Text("Message AI…", color = Color.Gray) }, colors = TextFieldDefaults.colors(focusedTextColor = White, unfocusedTextColor = White, focusedContainerColor = Panel, unfocusedContainerColor = Panel, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent))
                 IconButton(enabled = (input.isNotBlank() || attachments.isNotEmpty()) && !busy, onClick = {
                     val basePrompt = input.trim()
