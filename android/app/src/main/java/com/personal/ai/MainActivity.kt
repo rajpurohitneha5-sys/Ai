@@ -225,6 +225,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                     if (projectName.trim().isNotEmpty()) {
                         val match = projects.firstOrNull { it.name == projectName.trim() }
                         if (match == null) selectedProjectId = store.addProject(projectName.trim(), projectInstructions.trim())
+                        else { store.updateProject(match.id, projectName.trim(), projectInstructions.trim()); selectedProjectId = match.id }
                         projects = store.projects(); projectName = ""; projectInstructions = ""
                     }
                     projectsOpen = false
