@@ -146,7 +146,8 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
     var modelList by remember { mutableStateOf<List<String>>(emptyList()) }
     var modelMenu by remember { mutableStateOf(false) }
     var settingsOpen by remember { mutableStateOf(false) }
-    var projectsOpen by remember { mutableStateOf(false) }\n    var memoryOpen by remember { mutableStateOf(false) }
+    var projectsOpen by remember { mutableStateOf(false) }
+    var memoryOpen by remember { mutableStateOf(false) }
     var memories by remember { mutableStateOf(store.memories()) }
     var memoryDraft by remember { mutableStateOf("") }
     var projects by remember { mutableStateOf(store.projects()) }
@@ -184,7 +185,9 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("AI", color = Gold, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 IconButton(onClick = { historyOpen = true }) { Icon(Icons.Default.History, "Chat history", tint = Gold) }
-                IconButton(onClick = { newChat() }, enabled = !busy) { Icon(Icons.Default.Add, "New chat", tint = Gold) }\n                TextButton(onClick = { projects = store.projects(); projectsOpen = true }) { Text("Projects", color = Gold) }\n                TextButton(onClick = { memories = store.memories(); memoryOpen = true }) { Text("Memory", color = Gold) }
+                IconButton(onClick = { newChat() }, enabled = !busy) { Icon(Icons.Default.Add, "New chat", tint = Gold) }
+                TextButton(onClick = { projects = store.projects(); projectsOpen = true }) { Text("Projects", color = Gold) }
+                TextButton(onClick = { memories = store.memories(); memoryOpen = true }) { Text("Memory", color = Gold) }
                 Spacer(Modifier.weight(1f))
                 Box {
                     TextButton(onClick = { modelMenu = true }) { Text(if (model.isBlank()) "Choose model" else model, color = Gold) }
