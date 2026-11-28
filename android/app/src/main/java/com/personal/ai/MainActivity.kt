@@ -111,7 +111,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
             attachmentLoading = true
             scope.launch {
                 val loaded = withContext(Dispatchers.IO) {
-                    uris.map { uri ->
+                    uris.take(5).map { uri ->
                         try {
                             val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "Attachment"
                             val mime = context.contentResolver.getType(uri)?.lowercase() ?: ""
@@ -137,7 +137,17 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                         } catch (_: Exception) { "Attachment" to "[Unable to read this file]" }
                     }
                 }
-                attachments = attachments + loaded
+                val combined = attachments + loaded
+                val retained = mutableListOf<Pair<String, String>>()
+                var totalChars = 0
+                combined.forEach { item ->
+                    val size = item.second.length
+                    if (retained.size < 5 && totalChars + size <= 5 * 1024 * 1024) {
+                        retained.add(item)
+                        totalChars += size
+                    }
+                }
+                attachments = retained
                 attachmentLoading = false
             }
         }
