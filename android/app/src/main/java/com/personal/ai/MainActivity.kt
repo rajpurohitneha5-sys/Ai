@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
         val legacy = ChatStore(this)
         val workspace = WorkspaceStore(this)
         workspace.migrateLegacy(legacy.load())
+        workspace.recoverInterruptedMessages()
         setContent {
             AIApp(
                 prefs.getString("endpoint", "") ?: "",
