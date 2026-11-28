@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
 fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, saveConfig: (String, String) -> Unit) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
-    var attachments by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }\n    var voiceError by remember { mutableStateOf("") }\n    val speechLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->\n        if (result.resultCode == android.app.Activity.RESULT_OK) {\n            val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()\n            if (!spoken.isNullOrBlank()) input = if (input.isBlank()) spoken else input.trimEnd() + " " + spoken\n        } else if (result.resultCode != android.app.Activity.RESULT_CANCELED) voiceError = "Voice input unavailable"\n    }
+    var attachments by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }\n
     val filePicker = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         val loaded = mutableListOf<Pair<String, String>>()
         uris.forEach { uri ->
@@ -113,7 +113,7 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
         }
         attachments = attachments + loaded
     }
-    var input by remember { mutableStateOf("") }
+    var input by remember { mutableStateOf("") }\n    var voiceError by remember { mutableStateOf("") }\n    val speechLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->\n        if (result.resultCode == android.app.Activity.RESULT_OK) {\n            val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()\n            if (!spoken.isNullOrBlank()) input = if (input.isBlank()) spoken else input.trimEnd() + " " + spoken\n        } else if (result.resultCode != android.app.Activity.RESULT_CANCELED) voiceError = "Voice input unavailable"\n    }
     var endpoint by remember { mutableStateOf(initialEndpoint) }
     var token by remember { mutableStateOf(initialToken) }
     var model by remember { mutableStateOf(store.listConversations().firstOrNull { !it.archived }?.model ?: "") }
