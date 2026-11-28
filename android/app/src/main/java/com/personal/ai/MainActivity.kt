@@ -1,6 +1,6 @@
 package com.personal.ai
 
-import android.os.Bundle
+import android.os.Bundle\nimport android.content.Intent\nimport android.speech.RecognizerIntent
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,7 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Send\nimport androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
 fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, saveConfig: (String, String) -> Unit) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
-    var attachments by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+    var attachments by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }\n    var voiceError by remember { mutableStateOf("") }\n    val speechLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->\n        if (result.resultCode == android.app.Activity.RESULT_OK) {\n            val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()\n            if (!spoken.isNullOrBlank()) input = if (input.isBlank()) spoken else input.trimEnd() + " " + spoken\n        } else if (result.resultCode != android.app.Activity.RESULT_CANCELED) voiceError = "Voice input unavailable"\n    }
     val filePicker = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         val loaded = mutableListOf<Pair<String, String>>()
         uris.forEach { uri ->
@@ -265,13 +265,13 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                 Text("Generating…", color = Gold); Spacer(Modifier.weight(1f))
                 TextButton(onClick = { activeCall?.cancelActive() }) { Icon(Icons.Default.Stop, "Stop", tint = Gold); Text("Stop", color = Gold) }
             }
-            if (error.isNotBlank()) Text(error, color = Color(0xFFFF8A80), modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+            if (error.isNotBlank()) Text(error, color = Color(0xFFFF8A80), modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))\n            if (voiceError.isNotBlank()) Text(voiceError, color = Color(0xFFFF8A80), modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
             if (attachments.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(attachments.joinToString { it.first }, color = Gold, fontSize = 12.sp, modifier = Modifier.weight(1f))
                 TextButton(onClick = { attachments = emptyList() }) { Text("Clear", color = Color.Gray) }
             }
             Row(Modifier.fillMaxWidth().padding(12.dp).background(Panel, RoundedCornerShape(24.dp)).padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { filePicker.launch(arrayOf("text/*", "application/json", "application/xml")) }, enabled = !busy) { Icon(Icons.Default.AttachFile, "Attach files", tint = Gold) }
+                IconButton(onClick = { filePicker.launch(arrayOf("text/*", "application/json", "application/xml")) }, enabled = !busy) { Icon(Icons.Default.AttachFile, "Attach files", tint = Gold) }\n                IconButton(onClick = {\n                    voiceError = ""\n                    try {\n                        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {\n                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)\n                            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your message")\n                        }\n                        speechLauncher.launch(intent)\n                    } catch (_: Exception) { voiceError = "Speech recognition is not available on this device" }\n                }, enabled = !busy) { Icon(Icons.Default.Mic, "Voice input", tint = Gold) }
                 TextField(value = input, onValueChange = { input = it }, modifier = Modifier.weight(1f), placeholder = { Text("Message AI…", color = Color.Gray) }, colors = TextFieldDefaults.colors(focusedTextColor = White, unfocusedTextColor = White, focusedContainerColor = Panel, unfocusedContainerColor = Panel, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent))
                 IconButton(enabled = (input.isNotBlank() || attachments.isNotEmpty()) && !busy, onClick = {
                     val basePrompt = input.trim()
