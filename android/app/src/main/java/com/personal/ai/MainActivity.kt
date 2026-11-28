@@ -257,9 +257,16 @@ fun AIApp(initialEndpoint: String, initialToken: String, store: WorkspaceStore, 
                             activeCall = client
                             assistantId = store.addMessage(cid, "assistant", "", "streaming")
                             messages = messages + ChatMessage("", false, assistantId!!)
+                            var lastUiLength = 0
                             val answer = client.stream(payload, model.takeIf { it.isNotBlank() }) { delta ->
                                 streamed += delta
-                                scope.launch(Dispatchers.Main.immediate) { messages = messages.map { msg -> if (msg.id == assistantId) msg.copy(text = streamed) else msg } }
+                                // Avoid triggering a full Compose message-list refresh for every tiny SSE fragment.
+                                if (streamed.length - lastUiLength >= 32 || delta.contains("\\n")) {
+                                    lastUiLength = streamed.length
+                                    scope.launch(Dispatchers.Main.immediate) {
+                                        messages = messages.map { msg -> if (msg.id == assistantId) msg.copy(text = streamed) else msg }
+                                    }
+                                }
                             }
                             if (streamed.isBlank()) streamed = answer
                             messages = messages.map { msg -> if (msg.id == assistantId) msg.copy(text = streamed) else msg }
